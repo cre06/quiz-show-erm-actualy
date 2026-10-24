@@ -4,405 +4,301 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#060CE9">
-<title>JEOPARDY! Clone</title>
+<title>JEOPARDY!</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-/* ============ BASE & TEMA JEOPARDY ============ */
+:root{--blue:#060CE9;--blue-d:#0408a8;--gold:#F4D03F;--paper:#fdf6e3;--ink:#060CE9}
 *{-webkit-tap-highlight-color:transparent}
-:root{
-  --jp-blue:#060CE9;
-  --jp-blue-dark:#0408a8;
-  --jp-gold:#F4D03F;
-  --jp-gold-dark:#d4a017;
-  --jp-paper:#fdf6e3;
-  --jp-ink:#060CE9;
-}
-body{
-  font-family:'Poppins',sans-serif;
-  background:var(--jp-blue);
-  color:var(--jp-paper);
-  overflow-x:hidden;
-}
+body{font-family:'Poppins',sans-serif;background:var(--blue);color:var(--paper);overflow-x:hidden}
 .font-serif{font-family:'Playfair Display',serif}
-.jp-bg{background:var(--jp-blue)}
-.jp-gold{color:var(--jp-gold)}
-.jp-border{border-color:var(--jp-gold)}
+.gold{color:var(--gold)}.muted{color:rgba(255,255,255,.6)}.small{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;font-weight:800}
 .blob{position:fixed;border-radius:50%;filter:blur(100px);opacity:.35;z-index:-1;animation:blob 20s ease-in-out infinite alternate;pointer-events:none}
 .b1{width:500px;height:500px;background:#0033ff;top:-120px;left:-120px}
 .b2{width:460px;height:460px;background:#0000aa;bottom:-140px;right:-100px;animation-delay:-8s}
 @keyframes blob{to{transform:translate(80px,-50px) scale(1.3)}}
-
-/* ============ UTILITY / BUTTONS ============ */
-.btn{
-  padding:.6rem 1rem;border-radius:.8rem;font-weight:800;font-size:.9rem;
-  border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:var(--jp-gold);
-  transition:transform .1s,background .2s,box-shadow .2s;cursor:pointer;min-height:44px
-}
-.btn:hover{background:rgba(255,255,255,.2);border-color:var(--jp-gold)}
-.btn:active{transform:scale(.94)}
-.btn-gold{background:var(--jp-gold);color:var(--jp-ink);border-color:var(--jp-gold);box-shadow:0 0 25px rgba(244,208,63,.5)}
-.btn-gold:hover{background:#ffe07a}
-.btn-blue{background:var(--jp-blue);color:var(--jp-gold);border:2px solid var(--jp-gold)}
-.btn-blue:hover{background:var(--jp-blue-dark)}
-.btn-green{background:#0aa56f;color:#fff;border-color:#0aa56f}
-.btn-green:hover{background:#12b885}
-.btn-red{background:#b91c1c;color:#fff;border-color:#b91c1c}
-.btn-red:hover{background:#e11d48}
-.inp{
-  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);border-radius:.8rem;
-  padding:.55rem .7rem;color:#fff;font-size:.9rem;width:100%
-}
-.inp:focus{outline:none;border-color:var(--jp-gold);box-shadow:0 0 0 3px rgba(244,208,63,.25)}
-.check{accent-color:var(--jp-gold)}
-
-/* ============ MODALI ============ */
-.modal{display:none;position:fixed;inset:0;z-index:50;background:rgba(6,12,235,.94);align-items:center;justify-content:center;padding:10px;overflow:hidden}
-.modal.open{display:flex;animation:fadeIn .25s}
-.modal.closing{animation:fadeOut .2s forwards}
-.modal.open>.pop{animation:popIn .4s cubic-bezier(.2,1.1,.3,1)}
-.modal.closing>.pop{animation:popOut .2s forwards}
-.modal.full{padding:0}
-.modal.full>.pop{max-width:none!important;width:100%;height:100%;max-height:100%!important;border-radius:0!important}
-@keyframes fadeIn{from{opacity:0}}
-@keyframes fadeOut{to{opacity:0}}
-@keyframes popIn{from{opacity:0;transform:perspective(900px) rotateX(12deg) scale(.8)}}
-@keyframes popOut{to{opacity:0;transform:scale(.9)}}
-
-/* ============ TABELLONE CONDUTTORE ============ */
-.tile{
-  width:100%;aspect-ratio:1/1;border-radius:1rem;
-  font-family:'Playfair Display',serif;font-weight:900;font-size:1.5rem;
-  color:var(--jp-gold);background:rgba(255,255,255,.06);
-  border:2px solid var(--jp-gold);transition:transform .2s,border-color .2s,box-shadow .2s;cursor:pointer;
-  display:flex;align-items:center;justify-content:center
-}
-.tile:hover{transform:translateY(-4px) scale(1.03);border-color:#ffe07a;box-shadow:0 12px 30px -6px rgba(244,208,63,.4)}
-.tile:active{transform:scale(.94)}
-.tile-done{opacity:.25;text-decoration:line-through;filter:grayscale(1)}
-.tile-daily{position:relative}
-.tile-daily::after{content:'DD';position:absolute;top:4px;right:4px;background:#b91c1c;color:#fff;border-radius:50%;width:18px;height:18px;display:grid;place-items:center;font-size:10px;font-weight:900}
-.tile-flip{animation:flipDone .5s}
-@keyframes flipDone{0%{transform:perspective(600px) rotateY(0)}50%{transform:perspective(600px) rotateY(90deg)}100%{transform:perspective(600px) rotateY(0)}}
-
-/* ============ BUZZER GIOCATORE ============ */
-.buzz-big{
-  width:min(260px,85vw);height:min(120px,35vw);border-radius:2rem;
-  font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(1.4rem,8vw,3rem);
-  color:var(--jp-ink);background:var(--jp-gold);box-shadow:0 0 40px rgba(244,208,63,.6);
-  border:none;cursor:pointer;transition:transform .1s,box-shadow .2s,filter .2s
-}
-.buzz-big:active{transform:scale(.92)}
-.buzz-big.waiting{opacity:.55;cursor:not-allowed;filter:grayscale(.4)}
-.buzz-big.first{background:#0aa56f;color:#fff;animation:buzzGreen .6s}
-.buzz-big.late{background:#b91c1c;color:#fff;animation:buzzRed .6s}
-@keyframes buzzGreen{0%{box-shadow:0 0 0 0 rgba(10,165,111,.7)}70%{box-shadow:0 0 0 20px rgba(10,165,111,0)}100%{box-shadow:0 0 0 0 rgba(10,165,111,0)}}
-@keyframes buzzRed{0%{box-shadow:0 0 0 0 rgba(185,28,28,.7)}70%{box-shadow:0 0 0 20px rgba(185,28,28,0)}100%{box-shadow:0 0 0 0 rgba(185,28,28,0)}}
-.buzz-msg{margin-top:1rem;font-family:'Playfair Display',serif;font-weight:900;font-size:1.5rem;text-align:center}
-
-/* ============ PUNTEGGIO & STATO ============ */
-#audScore{
-  font-family:'Playfair Display',serif;font-weight:900;font-size:1.5rem;
-  color:var(--jp-gold);text-shadow:0 0 12px rgba(244,208,63,.4)
-}
-.float-pts{
-  position:fixed;z-index:90;pointer-events:none;font-family:'Playfair Display',serif;
-  font-weight:900;font-size:2rem;text-shadow:0 0 14px currentColor;
-  animation:floatUp 1.2s ease-out forwards;white-space:nowrap
-}
-.float-pts.pos{color:#0aa56f}.float-pts.neg{color:#b91c1c}
-@keyframes floatUp{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}15%{opacity:1;transform:translate(-50%,-10px) scale(1.2)}100%{opacity:0;transform:translate(-50%,-90px) scale(1)}}
-
-/* ============ MODALE TESSERA HOST ============ */
-.card-question{
-  font-family:'Playfair Display',serif;font-size:2rem;line-height:1.35;text-align:center;
-  color:var(--jp-paper);margin:1.5rem 0;padding:1rem;border:2px solid var(--jp-gold);border-radius:1rem;
-  background:rgba(255,255,255,.06)
-}
-.card-answer{
-  font-family:'Playfair Display',serif;font-size:1.75rem;text-align:center;color:var(--jp-gold);
-  margin-top:1rem;padding:1rem;border:2px dashed rgba(244,208,63,.5);border-radius:1rem;
-  background:rgba(255,255,255,.04);display:none
-}
-.card-answer.reveal{display:block}
-.badge-dd{
-  display:inline-block;background:#b91c1c;color:#fff;border-radius:999px;padding:.15rem .6rem;
-  font-size:.75rem;font-weight:900;margin-left:.5rem;letter-spacing:.05em
-}
-
-/* ============ LISTA BUZZER HOST ============ */
-.buzz-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.4rem}
-.buzz-item{
-  display:flex;align-items:center;gap:.6rem;padding:.4rem .8rem;border-radius:.6rem;
-  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);font-weight:800
-}
-.buzz-item.first{border-color:var(--jp-gold);background:rgba(244,208,63,.15);color:var(--jp-gold)}
-.buzz-order{
-  width:20px;height:20px;border-radius:50%;background:var(--jp-gold);color:var(--jp-ink);
-  font-weight:900;font-size:.75rem;display:grid;place-items:center;flex-shrink:0
-}
-
-/* ============ TOAST ============ */
-#toast{
-  position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
-  transition:.3s;z-index:95;padding:.6rem 1rem;border-radius:.8rem;background:rgba(6,12,235,.9);
-  border:1px solid var(--jp-gold);font-size:.9rem;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.6)
-}
-#toast.show{opacity:1;transform:translate(-50%,0)}
-
-/* ============ VISTA CONCORRENTI ============ */
-#audApp{transition:background .5s,color .5s}
-.aud-head{padding:.5rem .15rem;border-radius:.8rem;text-align:center}
-.aud-title{font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(10px,3vw,14px);letter-spacing:.05em;text-transform:uppercase}
-.aud-tile{
-  padding:1rem 0;border-radius:.8rem;text-align:center;font-family:'Playfair Display',serif;
-  font-weight:900;font-size:clamp(1rem,4vw,1.6rem);color:var(--jp-gold);
-  background:rgba(255,255,255,.06);border:2px solid var(--jp-gold);transition:all .3s;cursor:pointer
-}
-.aud-tile:hover{border-color:#ffe07a;transform:translateY(-3px)}
-.aud-tile.tile-gone{opacity:.15;filter:grayscale(1);pointer-events:none}
-.aud-tile.tile-open{border-color:#ffe07a;animation:tilePulse 1.2s infinite}
-@keyframes tilePulse{50%{box-shadow:0 0 25px rgba(244,208,63,.5)}}
-#audWait{text-center;text-slate-300}
-.spin{animation:spin 1.2s linear infinite;display:inline-block}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-.glass{background:rgba(10,20,40,.75);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1)}
-.logo{background:linear-gradient(90deg,var(--jp-gold),#ffe07a,var(--jp-gold));background-size:200% 100%;animation:shine 3s linear infinite;color:var(--jp-ink)}
+.glass{background:rgba(10,20,60,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12)}
+.logo{background:linear-gradient(90deg,var(--gold),#ffe07a,var(--gold));background-size:200% 100%;animation:shine 3s linear infinite;color:var(--ink)}
 @keyframes shine{to{background-position:-200% 0}}
+.badge{font-size:11px;font-weight:800;padding:.2rem .65rem;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.4);white-space:nowrap}
+.banner{background:rgba(4,8,168,.85);border-bottom:1px solid rgba(244,208,63,.3);color:var(--gold);font-size:11px;padding:.5rem 1rem;display:flex;justify-content:space-between;gap:.75rem}
+.box{padding:.9rem;border-radius:1rem;background:rgba(0,0,0,.35);border:1px solid rgba(244,208,63,.3)}
+.btn{padding:.55rem .9rem;border-radius:.8rem;font-weight:800;font-size:.85rem;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:var(--gold);transition:transform .1s,background .2s;cursor:pointer;min-height:42px}
+.btn:hover{background:rgba(255,255,255,.2);border-color:var(--gold)}.btn:active{transform:scale(.94)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-gold{background:var(--gold);color:var(--ink);border-color:var(--gold);box-shadow:0 0 22px rgba(244,208,63,.4)}.btn-gold:hover{background:#ffe07a}
+.btn-blue{background:var(--blue);color:var(--gold);border:2px solid var(--gold)}.btn-blue:hover{background:var(--blue-d)}
+.btn-green{background:#0aa56f;color:#fff;border-color:#0aa56f}.btn-green:hover{background:#12b885}
+.btn-red{background:#b91c1c;color:#fff;border-color:#b91c1c}.btn-red:hover{background:#e11d48}
+.inp{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);border-radius:.8rem;padding:.55rem .7rem;color:#fff;font-size:.9rem;width:100%}
+.inp:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(244,208,63,.25)}
+.inp option{color:#000}
+.check{accent-color:var(--gold)}
+/* modali */
+.modal{display:none;position:fixed;inset:0;z-index:50;background:rgba(6,12,120,.94);align-items:center;justify-content:center;padding:10px;overflow:hidden}
+.modal.open{display:flex;animation:fadeIn .25s}.modal.closing{animation:fadeOut .2s forwards}
+.modal.open>.pop{animation:popIn .4s cubic-bezier(.2,1.1,.3,1)}.modal.closing>.pop{animation:popOut .2s forwards}
+.modal.full{padding:0}.modal.full>.pop{max-width:none!important;width:100%;height:100%;max-height:100%!important;border-radius:0!important}
+@keyframes fadeIn{from{opacity:0}}@keyframes fadeOut{to{opacity:0}}
+@keyframes popIn{from{opacity:0;transform:perspective(900px) rotateX(12deg) scale(.8)}}@keyframes popOut{to{opacity:0;transform:scale(.9)}}
+/* tabellone */
+.cat-head{padding:.7rem .4rem;border-radius:.9rem;text-align:center;background:rgba(0,0,0,.35);border:1px solid rgba(244,208,63,.35)}
+.cat-head h3{font-family:'Playfair Display',serif;font-weight:900;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;word-break:break-word}
+.tile{width:100%;padding:1.1rem 0;border-radius:.9rem;font-family:'Playfair Display',serif;font-weight:900;font-size:1.6rem;color:var(--gold);background:rgba(255,255,255,.06);border:2px solid var(--gold);transition:transform .2s,box-shadow .2s;cursor:pointer;position:relative}
+.tile:hover{transform:translateY(-4px) scale(1.03);box-shadow:0 12px 30px -6px rgba(244,208,63,.4)}.tile:active{transform:scale(.94)}
+.tile-done{opacity:.22;text-decoration:line-through;filter:grayscale(1)}
+.tile-dd::after{content:'DD';position:absolute;top:4px;right:4px;background:#b91c1c;color:#fff;border-radius:999px;padding:0 6px;font-size:10px;font-weight:900;font-family:'Poppins',sans-serif}
+.card-question{font-family:'Playfair Display',serif;font-size:1.7rem;line-height:1.35;text-align:center;color:var(--paper);padding:1.1rem;border:2px solid var(--gold);border-radius:1rem;background:rgba(255,255,255,.06)}
+.ans-host{padding:.7rem 1rem;border-radius:1rem;border:2px dashed rgba(244,208,63,.5);background:rgba(0,0,0,.3)}
+.ans-host #mAnswer{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);font-weight:700}
+.badge-dd{display:inline-block;background:#b91c1c;color:#fff;border-radius:999px;padding:.1rem .6rem;font-size:.7rem;font-weight:900;letter-spacing:.05em;font-family:'Poppins',sans-serif}
+.timer{font-family:'Playfair Display',serif;font-weight:900;font-size:1.5rem;color:var(--gold)}.timer.danger{color:#ff6b6b;animation:pulse .5s infinite alternate}
+@keyframes pulse{to{transform:scale(1.12)}}
+.row{display:flex;align-items:center;gap:.5rem;padding:.55rem .7rem;border-radius:.8rem;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.12)}
+/* buzzer telefono */
+.buzz-big{width:min(300px,86vw);height:min(150px,40vw);border-radius:2rem;font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(1.5rem,8vw,2.6rem);border:none;cursor:pointer;transition:transform .1s,filter .2s;color:var(--ink);background:var(--gold);box-shadow:0 0 40px rgba(244,208,63,.6)}
+.buzz-big:active{transform:scale(.92)}
+.buzz-big.waiting{opacity:.5;background:#8a8fb8;box-shadow:none;cursor:not-allowed}
+.buzz-big.first{background:#0aa56f;color:#fff;box-shadow:0 0 40px rgba(10,165,111,.7)}
+.buzz-big.late{background:#b91c1c;color:#fff;box-shadow:none;opacity:.8}
+/* punteggi */
+.float-pts{position:fixed;z-index:90;pointer-events:none;font-family:'Playfair Display',serif;font-weight:900;font-size:2rem;text-shadow:0 0 14px currentColor;animation:floatUp 1.2s ease-out forwards;white-space:nowrap}
+.float-pts.pos{color:#2fe0a0}.float-pts.neg{color:#ff6b6b}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}15%{opacity:1;transform:translate(-50%,-10px) scale(1.2)}100%{opacity:0;transform:translate(-50%,-90px) scale(1)}}
+#audScore{font-family:'Playfair Display',serif;font-weight:900;font-size:1.3rem;color:var(--gold)}
+.score-pop{animation:scorePop .35s cubic-bezier(.34,1.56,.64,1)}@keyframes scorePop{50%{transform:scale(1.3)}}
+.pod{background:linear-gradient(to top,var(--blue-d),var(--gold));border-radius:.75rem .75rem 0 0;display:flex;justify-content:center;padding-top:.5rem;font-size:2rem;margin-top:.4rem;transform-origin:bottom;animation:rise .9s cubic-bezier(.2,1,.3,1) backwards}
+@keyframes rise{from{transform:scaleY(0)}}
+/* vista concorrenti */
+.aud-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:.5rem;max-width:200px}
+.aud-title{font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(9px,2.8vw,13px);letter-spacing:.04em;text-transform:uppercase;word-break:break-word;line-height:1.15}
+.aud-tile{padding:.95rem 0;border-radius:.8rem;text-align:center;font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(1rem,4vw,1.5rem);color:var(--gold);background:rgba(255,255,255,.06);border:2px solid var(--gold);transition:all .3s}
+.aud-tile.tile-gone{opacity:.12;filter:grayscale(1)}
+.aud-tile.tile-open{background:rgba(244,208,63,.25);animation:tp 1.2s infinite}@keyframes tp{50%{box-shadow:0 0 25px rgba(244,208,63,.6)}}
+.jp-overlay{background:rgba(6,12,120,.97)}
+.spin{animation:spin 1.2s linear infinite;display:inline-block}@keyframes spin{to{transform:rotate(360deg)}}
+#toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:.3s;z-index:95;padding:.6rem 1rem;border-radius:.8rem;background:rgba(6,12,120,.95);border:1px solid var(--gold);font-size:.9rem;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+#toast.show{opacity:1;transform:translate(-50%,0)}
 @media (max-width:1023px){
-  #sidePanel{position:fixed;left:0;right:0;bottom:0;z-index:40;max-height:78vh;overflow-y:auto;
-    background:rgba(6,12,235,.95);border-top:2px solid var(--jp-gold);
-    border-radius:1.5rem 1.5rem 0 0;padding:1rem;transform:translateY(105%);
-    transition:transform .35s cubic-bezier(.2,.9,.3,1);box-shadow:0 -20px 50px rgba(0,0,0,.6)}
+  #sidePanel{position:fixed;left:0;right:0;bottom:0;z-index:40;max-height:78vh;overflow-y:auto;background:#0a1070;border-top:2px solid var(--gold);border-radius:1.5rem 1.5rem 0 0;padding:1rem;transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.9,.3,1);box-shadow:0 -20px 50px rgba(0,0,0,.6)}
   #sidePanel.open{transform:none}
 }
-::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(244,208,63,.3);border-radius:4px}
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:rgba(244,208,63,.3);border-radius:4px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
-
 <div class="blob b1"></div><div class="blob b2"></div>
 
-<!-- =================================================================
-     VISTA CONDUTTORE (HOST)
-     ================================================================= -->
-<div id="hostApp" class="min-h-screen flex flex-col jp-bg">
-  <div id="hostBanner" class="hidden bg-[#0408a8]/80 border-b border-jp-gold/30 text-jp-gold text-[11px] px-4 py-2 flex items-start justify-between gap-3">
-    <span id="hostBannerTxt"></span>
-    <button class="font-bold" onclick="this.parentElement.classList.add('hidden')">✕</button>
-  </div>
-
+<!-- ================= VISTA CONDUTTORE ================= -->
+<div id="hostApp" class="min-h-screen flex flex-col">
+  <div id="hostBanner" class="hidden banner"><span id="hostBannerTxt"></span><button class="font-bold" onclick="this.parentElement.classList.add('hidden')">✕</button></div>
   <header class="glass sticky top-0 z-30 px-3 py-2.5 shadow-xl">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-2">
         <div class="logo px-3 py-1.5 rounded-xl font-serif font-black text-sm sm:text-base tracking-wider">⚡ JEOPARDY!</div>
-        <span id="syncBadge" class="text-[11px] font-bold px-2.5 py-1 rounded-full border border-white/20 bg-black/40">● Sync…</span>
+        <span id="syncBadge" class="badge">● Sync…</span>
       </div>
-      <div class="flex gap-1.5">
-        <button class="btn" title="QR concorrenti" onclick="openQR()">📱<span class="hidden sm:inline"> QR</span></button>
-        <button class="btn" title="Editor" onclick="openEditor()">✏️<span class="hidden sm:inline"> Editor</span></button>
-        <button class="btn" title="Finale" onclick="showFinal()">🏁<span class="hidden sm:inline"> Finale</span></button>
+      <div class="flex flex-wrap gap-1.5">
+        <button class="btn" onclick="openQR()">📱<span class="hidden sm:inline"> QR</span></button>
+        <button class="btn" onclick="openEditor()">✏️<span class="hidden sm:inline"> Editor</span></button>
+        <button class="btn" onclick="openM('rulesModal')">📖<span class="hidden sm:inline"> Regole</span></button>
+        <button class="btn" onclick="showFinal()">🏁<span class="hidden sm:inline"> Classifica</span></button>
         <button class="btn" id="soundBtn" onclick="toggleSound()">🔊</button>
         <button class="btn btn-red" title="Nuova partita" onclick="resetGame()">🔄</button>
       </div>
     </div>
   </header>
 
-  <!-- Schermata di benvenuto -->
   <section id="welcome" class="hidden flex-grow flex items-center justify-center p-4">
     <div class="glass rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-5 text-center">
       <div class="text-6xl">⚡</div>
-      <h1 class="font-serif font-black text-3xl text-jp-gold">Benvenuto, conduttore!</h1>
-      <p class="text-sm text-slate-300">Non c'è ancora nessun mazzo. Il mazzo resta solo su questo dispositivo.</p>
+      <h1 class="font-serif font-black text-3xl gold">Benvenuto, conduttore!</h1>
+      <p class="text-sm muted">Non c'è ancora nessun mazzo. Il mazzo (domande e risposte) resta solo su questo dispositivo: ai telefoni arrivano solo le domande che apri.</p>
       <div class="grid gap-3">
-        <label class="btn btn-gold text-center cursor-pointer !py-3">📂 Importa mazzo (.json)<input type="file" accept=".json,application/json" class="hidden" onchange="importFile(this)"></label>
+        <button class="btn btn-gold !py-3" onclick="loadDemo()">🎲 Carica mazzo demo</button>
+        <label class="btn text-center cursor-pointer !py-3">📂 Importa mazzo (.json)<input type="file" accept=".json,application/json" class="hidden" onchange="importFile(this)"></label>
         <button class="btn !py-3" onclick="$('pasteBox').classList.toggle('hidden')">📋 Incolla JSON</button>
         <div id="pasteBox" class="hidden space-y-2">
           <textarea id="pasteArea" rows="6" class="inp font-mono text-[11px]" placeholder="Incolla qui il JSON del mazzo…"></textarea>
           <button class="btn btn-green w-full" onclick="applyImport($('pasteArea').value)">Importa</button>
         </div>
         <button class="btn btn-blue !py-3" onclick="createEmptyDeck()">✨ Crea nuovo mazzo</button>
-        <a class="btn text-center !py-3" href="mazzo-esempio.json" download="mazzo-esempio.json">⬇️ Scarica esempio</a>
       </div>
-      <p class="text-[11px] text-slate-500">Esempio: <code>mazzo-esempio.json</code>.</p>
     </div>
   </section>
 
-  <main id="hostMain" class="hidden max-w-7xl mx-auto w-full p-3 sm:p-6 flex-grow grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-6">
-    <!-- Pannello squadre -->
+  <main id="hostMain" class="hidden max-w-7xl mx-auto w-full p-3 sm:p-6 flex-grow grid grid-cols-1 lg:grid-cols-[330px_minmax(0,1fr)] gap-6">
     <aside id="sidePanel" class="space-y-4 order-2 lg:order-1">
-      <div class="lg:hidden flex justify-between items-center">
-        <b class="font-serif text-jp-gold">🏆 Squadre</b><button class="btn" onclick="toggleDrawer(false)">✕</button>
-      </div>
+      <div class="lg:hidden flex justify-between items-center"><b class="font-serif gold">🏆 Squadre</b><button class="btn" onclick="toggleDrawer(false)">✕</button></div>
       <div class="glass rounded-2xl p-4">
         <div class="flex items-center justify-between mb-3 pb-3 border-b border-white/10">
-          <h2 class="font-serif font-bold text-jp-gold hidden lg:block">🏆 Squadre</h2>
+          <h2 class="font-serif font-bold gold hidden lg:block">🏆 Squadre</h2>
           <button class="btn btn-blue" onclick="addPlayer()">+ Squadra</button>
         </div>
-        <div id="playersList" class="space-y-2 max-h-[55vh] overflow-y-auto pr-1"></div>
-        <div class="mt-4 p-3 rounded-xl bg-jp-blue/60 border border-jp-gold/40 text-center">
-          <span class="block text-[10px] uppercase font-bold tracking-wider text-white/70">Controllo turno</span>
-          <span id="activeName" class="font-bold text-jp-gold"></span>
+        <div id="playersList" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1"></div>
+        <div class="mt-4 p-3 rounded-xl box text-center">
+          <span class="small muted block">Sceglie la prossima tessera</span>
+          <span id="activeName" class="font-bold gold"></span>
         </div>
       </div>
-      <div class="glass rounded-2xl p-4 text-[11px] text-white/70 space-y-1">
-        <h3 class="font-bold text-jp-gold uppercase tracking-wider">📖 Regole</h3>
-        <ul class="list-disc pl-4 space-y-1 text-sm">
-          <li>Apri una tessera e leggi la domanda.</li>
-          <li>I concorrenti premono il buzzer; il primo conta.</li>
-          <li>Segna <b>Giusta</b> o <b>Sbagliata</b> per assegnare/sottrarre punti.</li>
-          <li>Le tessere <span class="text-red-400">DD</span> sono Daily Double (puntata libera).</li>
-        </ul>
+      <div class="glass rounded-2xl p-4 space-y-3 text-sm">
+        <h3 class="small gold">⚙️ Impostazioni</h3>
+        <label class="flex items-center gap-2"><input type="checkbox" class="check" id="optScores" onchange="setOpt('showScores',this.checked)"> Mostra punteggi sui telefoni</label>
+        <label class="flex items-center gap-2"><input type="checkbox" class="check" id="optPenalty" onchange="setOpt('penalty',this.checked)"> Penalità per risposta sbagliata</label>
+        <label class="flex items-center justify-between gap-2">Secondi buzzer<input type="number" id="optBuzz" class="inp !w-20" min="3" max="30" onchange="setNum('buzzSecs',this.value,3,30)"></label>
+        <label class="flex items-center justify-between gap-2">Secondi risposta<input type="number" id="optAns" class="inp !w-20" min="3" max="60" onchange="setNum('ansSecs',this.value,3,60)"></label>
       </div>
     </aside>
-
     <section class="space-y-5 pb-24 lg:pb-0 min-w-0 order-1 lg:order-2">
       <div class="overflow-x-auto pb-2"><div id="gameBoard" class="grid gap-3"></div></div>
+      <div id="fjBox" class="hidden glass rounded-2xl p-4 border-2 border-yellow-400/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="text-center sm:text-left"><div class="small gold">Sfida finale</div><h3 class="font-serif font-black text-xl">FINAL JEOPARDY</h3></div>
+        <button class="btn btn-gold !py-3 !px-6" onclick="openFJ()">⚡ <span id="fjBtnTxt">Final Jeopardy</span></button>
+      </div>
     </section>
   </main>
-
-  <button id="drawerBtn" class="lg:hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-30 btn btn-gold !px-6 !py-3 rounded-full" onclick="toggleDrawer(true)">🏆 Squadre</button>
+  <button id="drawerBtn" class="hidden lg:hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-30 btn btn-gold !px-6 !py-3 rounded-full" onclick="toggleDrawer(true)">🏆 Squadre</button>
 </div>
 
-<!-- =================================================================
-     VISTA CONCORRENTI (CLIENTE)
-     ================================================================= -->
-<div id="audApp" class="hidden min-h-screen flex flex-col jp-bg">
-  <header class="glass px-4 py-3 flex items-center justify-between sticky top-0 z-30">
-    <div class="logo px-3 py-1 rounded-lg font-serif font-black tracking-wider text-xs sm:text-sm">⚡ JEOPARDY!</div>
-    <div class="flex items-center gap-2">
-      <span id="audScore">0</span>
-      <span id="audStatus" class="text-[11px] font-bold px-2.5 py-1 rounded-full border border-white/20 bg-black/40">● …</span>
+<!-- ================= VISTA CONCORRENTI ================= -->
+<div id="audApp" class="hidden min-h-screen flex flex-col">
+  <header class="glass px-4 py-3 flex items-center justify-between sticky top-0 z-30 gap-2">
+    <div class="flex items-center gap-2 min-w-0">
+      <div class="logo px-2.5 py-1 rounded-lg font-serif font-black tracking-wider text-xs">⚡ JEOPARDY!</div>
+      <span id="audTeam" class="font-bold text-sm truncate gold"></span>
     </div>
+    <div class="flex items-center gap-2"><span id="audScore" class="hidden"></span><span id="audStatus" class="badge">● …</span></div>
   </header>
-  <main class="flex-1 p-4 flex flex-col gap-4">
-    <div id="audWait" class="text-center text-white/70 mt-20 space-y-3">
+
+  <div id="joinScreen" class="fixed inset-0 z-40 flex items-center justify-center p-4 jp-overlay">
+    <div class="glass rounded-3xl p-7 max-w-sm w-full text-center space-y-4">
+      <div class="text-5xl">⚡</div>
+      <h2 class="font-serif font-black text-2xl gold">Entra in gioco</h2>
+      <p class="text-sm muted">Scrivi il nome della tua squadra.</p>
+      <input id="joinName" type="text" maxlength="24" placeholder="Nome squadra" class="inp text-center" onkeydown="if(event.key==='Enter')joinNow()">
+      <button id="joinBtn" class="btn btn-gold w-full !py-3" onclick="joinNow()">Entra</button>
+    </div>
+  </div>
+
+  <main class="flex-1 p-4 flex flex-col gap-4 w-full max-w-2xl mx-auto">
+    <div id="audWait" class="text-center muted mt-16 space-y-3">
       <div class="text-5xl spin">⏳</div>
-      <p class="font-serif font-bold text-lg text-jp-gold">In attesa del conduttore…</p>
-      <p class="text-xs text-white/60">Il tabellone comparirà qui in automatico.</p>
+      <p class="font-serif font-bold text-lg gold">In attesa del conduttore…</p>
     </div>
-    <div id="audBoard" class="hidden flex gap-3 sm:gap-4 justify-center"></div>
-    <div id="audPlay" class="hidden flex flex-col items-center justify-center gap-4 text-center">
-      <div id="audCat" class="text-jp-gold font-serif font-bold text-xl tracking-wide uppercase"></div>
-      <div id="audQuestion" class="text-jp-paper font-serif font-semibold text-2xl sm:text-4xl lg:text-5xl leading-relaxed px-4"></div>
-      <div id="audBuzz" class="w-full">
-        <button id="buzzBtn" class="buzz-big waiting" onclick="triggerBuzz()">BUZZER</button>
-        <div id="audBuzzMsg" class="buzz-msg hidden"></div>
+    <div id="audBoard" class="hidden"></div>
+
+    <div id="audPlay" class="hidden flex flex-col items-center gap-4 text-center">
+      <div id="audCat" class="gold font-serif font-bold text-lg tracking-wide uppercase"></div>
+      <div id="audPts" class="font-serif font-black text-3xl"></div>
+      <div id="audQuestion" class="font-serif font-semibold text-2xl sm:text-3xl leading-relaxed px-2"></div>
+      <div id="audTimer" class="timer"></div>
+      <div id="audBuzzWrap" class="w-full flex flex-col items-center gap-3">
+        <button id="buzzBtn" class="buzz-big waiting" onclick="triggerBuzz()">ATTENDI…</button>
       </div>
+      <div id="audMsg" class="font-serif font-bold text-xl"></div>
+      <div id="audAnswer" class="hidden box w-full"></div>
     </div>
-    <div id="audDone" class="hidden text-center mt-10 space-y-2"><div class="text-5xl">🏁</div><p class="font-serif font-black text-3xl text-jp-gold">Tutte le tessere sono state giocate!</p></div>
+
+    <div id="audFJ" class="hidden space-y-4"></div>
     <div id="audScores" class="hidden"></div>
+    <div id="audFinal" class="hidden text-center space-y-6 mt-4"></div>
   </main>
+  <button class="fixed bottom-4 right-4 z-30 btn btn-gold !rounded-full" onclick="openM('rulesModal')">📖</button>
 </div>
 
-<!-- =================================================================
-     MODALE TESSERA (CONDUTTORE)
-     ================================================================= -->
+<!-- ================= MODALE TESSERA (HOST) ================= -->
 <div id="cardModal" class="modal">
-  <div class="pop glass w-full max-w-3xl max-h-[94vh] rounded-3xl flex flex-col overflow-hidden border border-white/10">
+  <div class="pop glass w-full max-w-3xl max-h-[94vh] rounded-3xl flex flex-col overflow-hidden">
     <div class="px-4 py-3 border-b border-white/10 bg-black/20 flex items-center justify-between">
       <div class="flex items-center gap-2 flex-wrap">
-        <span id="mCat" class="px-3 py-1 rounded-lg text-xs font-bold uppercase bg-black/40 text-jp-gold border border-jp-gold/40"></span>
-        <span id="mPts" class="px-3 py-1 rounded-lg text-xs font-black text-jp-gold border border-jp-gold/40"></span>
+        <span id="mCat" class="px-3 py-1 rounded-lg text-xs font-bold uppercase bg-black/40 gold border border-yellow-400/40"></span>
+        <span id="mPts" class="px-3 py-1 rounded-lg text-xs font-black gold border border-yellow-400/40"></span>
       </div>
       <button class="btn" onclick="closeCard()">✕</button>
     </div>
-    <div class="p-4 sm:p-5 overflow-y-auto flex-grow space-y-5">
-      <!-- Daily Double bet -->
-      <div id="mBet" class="hidden p-4 rounded-2xl bg-black/40 border border-jp-gold/40">
-        <h5 class="text-xs font-bold text-white/50 uppercase tracking-wider mb-2">💰 Daily Double — Puntata</h5>
-        <div class="flex items-center gap-3">
-          <label class="text-sm font-bold text-jp-gold">Punti da scommettere:</label>
-          <input id="betInput" type="number" inputmode="numeric" min="0" class="inp !w-48 text-center font-serif font-bold text-jp-gold" placeholder="0">
-          <button class="btn btn-gold" onclick="confirmBet()">Imposta</button>
+    <div class="p-4 sm:p-5 overflow-y-auto flex-grow space-y-4">
+      <div id="mBet" class="hidden box space-y-3">
+        <h5 class="small gold">💰 Daily Double — puntata</h5>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label class="text-[11px] muted">Squadra che risponde</label><select id="betTeam" class="inp" onchange="updBetHint()"></select></div>
+          <div><label class="text-[11px] muted">Puntata</label><input id="betInput" type="number" inputmode="numeric" class="inp text-center font-serif font-bold gold"></div>
         </div>
+        <p id="betHint" class="text-xs muted"></p>
+        <button class="btn btn-gold" onclick="confirmBet()">Conferma puntata e mostra domanda</button>
       </div>
-
-      <!-- Domanda -->
-      <div id="mQuestionWrap" class="hidden">
-        <div class="card-question" id="mQuestion"></div>
-      </div>
-
-      <!-- Risposta nascosta -->
-      <div id="mAnswerWrap" class="hidden">
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-xs font-bold text-white/50 uppercase">Risposta (nascosta)</span>
-          <button class="btn btn-blue !px-3 !py-1 text-[11px]" onclick="toggleAnswer()">Rivela</button>
-        </div>
-        <div class="card-answer" id="mAnswer"></div>
-      </div>
-
-      <!-- Elenco buzzer -->
-      <div id="mBuzzListWrap" class="hidden">
-        <h5 class="text-xs font-bold text-white/50 uppercase tracking-wider mb-2">📟 Ordine Buzzer</h5>
-        <ul id="mBuzzList" class="buzz-list"></ul>
-        <div class="mt-3 flex gap-2">
-          <button id="btnRight" class="btn btn-green flex-1" onclick="markRight()">✓ Giusta</button>
-          <button id="btnWrong" class="btn btn-red flex-1" onclick="markWrong()">✗ Sbagliata</button>
-        </div>
-      </div>
+      <div id="mQwrap"><div class="card-question" id="mQuestion"></div></div>
+      <div class="ans-host"><div class="small muted">Risposta (solo conduttore)</div><div id="mAnswer"></div></div>
+      <div id="mCtl" class="space-y-3"></div>
     </div>
-    <div class="px-4 py-3 border-t border-white/10 bg-black/20 flex items-center justify-between gap-2">
-      <button id="doneBtn" class="btn btn-gold" onclick="toggleCompleted()"></button>
-      <button class="btn" onclick="closeCard()">Chiudi</button>
-    </div>
+    <div class="px-4 py-3 border-t border-white/10 bg-black/20 flex justify-end"><button class="btn" onclick="closeCard()">Chiudi senza completare</button></div>
   </div>
 </div>
 
-<!-- =================================================================
-     MODALE QR
-     ================================================================= -->
+<!-- ================= MODALE FINAL JEOPARDY (HOST) ================= -->
+<div id="fjModal" class="modal">
+  <div class="pop glass w-full max-w-3xl max-h-[94vh] rounded-3xl flex flex-col overflow-hidden">
+    <div class="px-4 py-3 border-b border-white/10 bg-black/20 flex items-center justify-between">
+      <h3 class="font-serif font-bold gold">⚡ FINAL JEOPARDY</h3><button class="btn" onclick="closeM('fjModal')">✕</button>
+    </div>
+    <div id="fjBody" class="p-4 sm:p-5 overflow-y-auto space-y-4"></div>
+  </div>
+</div>
+
+<!-- ================= MODALE QR ================= -->
 <div id="qrModal" class="modal full">
   <div class="pop glass overflow-y-auto">
     <div class="max-w-lg mx-auto p-5 space-y-5 text-center">
-      <div class="flex justify-between items-center">
-        <h3 class="font-serif font-black text-jp-gold text-xl">📱 Inquadra per giocare</h3>
-        <button class="btn" onclick="closeM('qrModal')">✕</button>
-      </div>
+      <div class="flex justify-between items-center"><h3 class="font-serif font-black gold text-xl">📱 Inquadra per giocare</h3><button class="btn" onclick="closeM('qrModal')">✕</button></div>
       <div id="qrBox" class="mx-auto bg-white p-3 rounded-2xl inline-flex items-center justify-center text-slate-700 text-sm" style="min-width:200px;min-height:200px"></div>
-      <div id="qrCount" class="text-sm text-jp-gold font-bold"></div>
-      <div id="qrWarn" class="hidden text-xs text-jp-gold bg-black/40 border border-jp-gold/40 rounded-xl p-3 text-left"></div>
-      <div class="space-y-2 text-left">
-        <label class="text-[11px] text-white/60">Link per i concorrenti:</label>
-        <div class="flex gap-2"><input id="qrUrl" class="inp" readonly><button class="btn" onclick="copyAudUrl()">📋</button><button class="btn" id="shareBtn" onclick="shareAudUrl()">↗️</button></div>
-      </div>
-      <div class="space-y-2 text-left">
-        <label class="text-[11px] text-white/60">URL pubblico (GitHub Pages, ecc.):</label>
-        <div class="flex gap-2"><input id="pubUrl" class="inp" placeholder="https://nome.github.io/jeopardy/"><button class="btn btn-blue" onclick="savePubUrl()">Salva</button></div>
-      </div>
-      <button class="btn btn-gold w-full !py-3 text-base" onclick="closeM('qrModal')">▶ Inizia a giocare</button>
+      <div id="qrCount" class="text-sm gold font-bold"></div>
+      <div id="qrWarn" class="hidden text-xs gold box text-left"></div>
+      <div class="space-y-2 text-left"><label class="text-[11px] muted">Link per i concorrenti:</label>
+        <div class="flex gap-2"><input id="qrUrl" class="inp" readonly><button class="btn" onclick="copyAudUrl()">📋</button><button class="btn" id="shareBtn" onclick="shareAudUrl()">↗️</button></div></div>
+      <div class="space-y-2 text-left"><label class="text-[11px] muted">URL pubblico di questa pagina (GitHub Pages) — si incolla una volta sola:</label>
+        <div class="flex gap-2"><input id="pubUrl" class="inp" placeholder="https://nome.github.io/jeopardy/"><button class="btn btn-blue" onclick="savePubUrl()">Salva</button></div></div>
+      <button class="btn btn-gold w-full !py-3" onclick="closeM('qrModal')">▶ Inizia a giocare</button>
     </div>
   </div>
 </div>
 
-<!-- =================================================================
-     MODALE EDITOR
-     ================================================================= -->
+<!-- ================= MODALE EDITOR ================= -->
 <div id="editorModal" class="modal">
-  <div class="pop glass w-full max-w-4xl max-h-[94vh] rounded-3xl flex flex-col overflow-hidden border border-white/10">
+  <div class="pop glass w-full max-w-4xl max-h-[94vh] rounded-3xl flex flex-col overflow-hidden">
     <div class="px-4 py-3 border-b border-white/10 bg-black/20 flex items-center justify-between flex-wrap gap-2">
-      <div id="edTabs" class="flex gap-2 flex-wrap"></div>
-      <button class="btn" onclick="closeM('editorModal')">✕</button>
+      <div id="edTabs" class="flex gap-2 flex-wrap"></div><button class="btn" onclick="closeM('editorModal')">✕</button>
     </div>
     <div id="edBody" class="p-4 sm:p-5 overflow-y-auto flex-grow space-y-4"></div>
-    <div class="px-4 py-3 border-t border-white/10 bg-black/20 flex justify-end">
-      <button class="btn btn-gold !py-3" onclick="finishEdit()">✅ Fine → Genera QR</button>
-    </div>
+    <div class="px-4 py-3 border-t border-white/10 bg-black/20 flex justify-end"><button class="btn btn-gold !py-3" onclick="finishEdit()">✅ Fine → Mostra QR</button></div>
   </div>
 </div>
 
-<!-- MODALE FINALE -->
+<!-- ================= MODALE FINALE ================= -->
 <div id="finalModal" class="modal">
-  <div class="pop glass w-full max-w-3xl max-h-[94vh] rounded-3xl flex flex-col overflow-hidden border border-white/10">
+  <div class="pop glass w-full max-w-3xl max-h-[94vh] rounded-3xl flex flex-col overflow-hidden">
     <div class="px-4 py-3 border-b border-white/10 bg-black/20 flex items-center justify-between">
-      <h3 class="font-serif font-bold text-jp-gold">🏆 Classifica finale</h3>
-      <button class="btn" onclick="closeFinal()">↩ Torna al tabellone</button>
+      <h3 class="font-serif font-bold gold">🏆 Classifica finale</h3><button class="btn" onclick="closeFinal()">↩ Torna al tabellone</button>
     </div>
     <div id="finalBody" class="p-4 sm:p-5 overflow-y-auto space-y-6"></div>
+  </div>
+</div>
+
+<!-- ================= MODALE REGOLE ================= -->
+<div id="rulesModal" class="modal">
+  <div class="pop glass w-full max-w-2xl max-h-[92vh] rounded-3xl flex flex-col overflow-hidden">
+    <div class="px-4 py-3 border-b border-white/10 bg-black/20 flex items-center justify-between">
+      <h3 class="font-serif font-bold gold">📖 Regole di Jeopardy!</h3><button class="btn" onclick="closeM('rulesModal')">✕</button>
+    </div>
+    <div class="p-5 overflow-y-auto space-y-4 text-sm leading-relaxed">
+      <div><h4 class="font-serif font-bold gold text-lg">🎯 Obiettivo</h4><p>Totalizza più punti di tutti. Il tabellone ha categorie e tessere con un valore: più è alto, più è difficile.</p></div>
+      <div><h4 class="font-serif font-bold gold text-lg">🧩 Il turno</h4><p>La squadra che ha il controllo sceglie una categoria e un valore. Il conduttore legge la domanda: <b>i buzzer restano bloccati</b> finché non finisce e li apre.</p></div>
+      <div><h4 class="font-serif font-bold gold text-lg">🔔 Buzzer</h4><p>Appena il buzzer si apre, il <b>primo telefono che preme</b> risponde a voce. Risposta giusta: guadagni il valore della tessera e <b>prendi il controllo</b>. Risposta sbagliata: perdi il valore (se la penalità è attiva), sei eliminato per quella domanda e il buzzer si riapre per gli altri. Se nessuno prenota entro il tempo, si rivela la risposta.</p></div>
+      <div><h4 class="font-serif font-bold gold text-lg">💰 Daily Double</h4><p>Alcune tessere nascondono un Daily Double: risponde <b>solo</b> la squadra che l'ha scelta, senza buzzer. Puntata libera da 5 fino al suo punteggio (o al valore più alto del tabellone, se più alto). Giusta: +puntata. Sbagliata: −puntata.</p></div>
+      <div><h4 class="font-serif font-bold gold text-lg">⚡ Final Jeopardy</h4><p>Alla fine, si gioca solo con punteggio <b>maggiore di zero</b>. Viene mostrata la categoria: ogni squadra fa una <b>puntata segreta</b> dal telefono (da 0 al proprio punteggio). Poi si svela l'indizio: 30 secondi per scrivere la risposta. Il conduttore giudica: chi ha ragione guadagna la puntata, chi sbaglia la perde.</p></div>
+      <div><h4 class="font-serif font-bold gold text-lg">🏆 Vittoria</h4><p>Vince chi ha il punteggio più alto alla fine. (Nel gioco originale le risposte vanno formulate come domande: qui è facoltativo!)</p></div>
+    </div>
   </div>
 </div>
 
@@ -412,446 +308,555 @@ body{
 /* =====================================================================
    1. COSTANTI & UTILITY
    ===================================================================== */
-const DECK_KEY='jp_deck_v1', GAME_KEY='jp_game_v1', SET_KEY='jp_settings_v1', PEER_KEY='jp_peer_id_v1', AUD_ID_KEY='jp_aud_id_v1';
-const BROKERS=[
-  'wss://broker.emqx.io:8084/mqtt',
-  'wss://broker.hivemq.com:8884/mqtt',
-  'wss://mqtt.eclipseprojects.io/mqtt'
-];
+const NS='jeopardy2';
+const K={deck:'jp2_deck',game:'jp2_game',set:'jp2_set',room:'jp2_room',dev:'jp2_dev',name:'jp2_name'};
+const BROKERS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt','wss://mqtt.eclipseprojects.io/mqtt'];
+const FJ_SECS=30;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>'x'+Math.random().toString(36).slice(2,9);
+const nid=()=>Date.now()*1000+Math.floor(Math.random()*1000);
 const load=k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}};
 const store=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn('localStorage',e)}};
-const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const vib=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch{}};
-function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2400)}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2600)}
 function openM(id){const m=$(id);m.classList.remove('closing');m.classList.add('open');playSound('open')}
-function closeM(id,cb){const m=$(id);if(!m.classList.contains('open'))return;m.classList.add('closing');setTimeout(()=>{m.classList.remove('open','closing');cb&&cb()},200);playSound('close')}
+function closeM(id,cb){const m=$(id);if(!m.classList.contains('open')){cb&&cb();return}m.classList.add('closing');setTimeout(()=>{m.classList.remove('open','closing');cb&&cb()},200);playSound('close')}
 
 /* =====================================================================
    2. AUDIO
    ===================================================================== */
 let audioCtx=null;
-function initAudio(){const A=window.AudioContext||window.webkitAudioContext;if(!audioCtx&&A)audioCtx=new A();if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume()}
+function initAudio(){const A_=window.AudioContext||window.webkitAudioContext;if(!audioCtx&&A_)audioCtx=new A_();if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume()}
 function tone(f,t0,d,type='sine',v=.2){const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);g.gain.setValueAtTime(v,t0);g.gain.exponentialRampToValueAtTime(.001,t0+d);o.connect(g);g.connect(audioCtx.destination);o.start(t0);o.stop(t0+d+.02)}
 function playSound(t){
-  if(typeof settings!=='undefined'&&!settings.sound)return;
+  if(typeof settings==='undefined'||!settings.sound)return;
   try{initAudio();if(!audioCtx)return;const n=audioCtx.currentTime;
     switch(t){
       case 'buzz':tone(220,n,.3,'sawtooth',.3);tone(165,n+.05,.3,'square',.15);break;
       case 'correct':[523,659,784,1046].forEach((f,i)=>tone(f,n+i*.1,.25,'sine',.2));break;
       case 'wrong':tone(180,n,.2,'square',.2);tone(110,n+.15,.3,'square',.2);break;
       case 'tick':tone(800,n,.05,'triangle',.08);break;
-      case 'win':[523,659,784,1046,1318].forEach((f,i)=>tone(f,n+i*.12,.3,'sine',.22));break;
+      case 'dd':[392,523,659,784,1046,1318].forEach((f,i)=>tone(f,n+i*.09,.2,'triangle',.2));break;
+      case 'win':[523,659,784,1046,784,1046,1318].forEach((f,i)=>tone(f,n+i*.13,.3,'sine',.22));break;
       case 'open':tone(330,n,.12,'sine',.1);tone(495,n+.07,.14,'sine',.1);break;
       case 'close':tone(495,n,.1,'sine',.08);tone(330,n+.07,.12,'sine',.08);break;
     }
   }catch(e){}
 }
-function toggleSound(){settings.sound=!settings.sound;store(SET_KEY,settings);$('soundBtn').textContent=settings.sound?'🔊':'🔇'}
+function toggleSound(){settings.sound=!settings.sound;store(K.set,settings);$('soundBtn').textContent=settings.sound?'🔊':'🔇'}
 
 /* =====================================================================
    3. STATO
    ===================================================================== */
-const newGame=()=>({
-  players:[{id:1,name:'Squadra Alfa',score:0},{id:2,name:'Squadra Beta',score:0}],
-  activeId:null,completed:{},ended:false
-});
-let deck=load(DECK_KEY);
-let game=load(GAME_KEY)||newGame();
-let settings=Object.assign({sound:true,showScores:true,publicUrl:''},load(SET_KEY)||{});
-let cur=null;
-let hostId=null,hbTimer=null,hostClients=[];
-const seen=new Map();
-
-function findCard(id){
-  if(!deck)return null;
-  if(id==='showdown')return deck.showdown?{card:deck.showdown,cat:{title:'Final Jeopardy'}}:null;
-  for(const c of deck.categories){
-    const k=c.cards.find(x=>x.id===id);
-    if(k)return{card:k,cat:c}
-  }
-  return null;
-}
-const allCards=()=>deck?deck.categories.flatMap(c=>c.cards).concat(deck.showdown?[deck.showdown]:[]):[];
-function purgeOrphans(){
-  const ids=new Set(allCards().map(c=>c.id));
-  Object.keys(game.completed).forEach(id=>{if(!ids.has(id))delete game.completed[id]})
-}
-function saveDeck(){store(DECK_KEY,deck)}
-function saveGame(){store(GAME_KEY,game)}
+const newGame=()=>({players:[],activeId:null,completed:{},ended:false,fj:null});
+let deck=load(K.deck);
+let game=Object.assign(newGame(),load(K.game)||{});
+game.players=(game.players||[]).filter(p=>p&&typeof p.id==='number');
+game.ended=false;
+let settings=Object.assign({sound:true,showScores:true,penalty:true,buzzSecs:8,ansSecs:10,publicUrl:''},load(K.set)||{});
+let cur=null,tickInt=null,lastSec=-1;
+const pl=id=>game.players.find(p=>p.id===id);
+const saveDeck=()=>store(K.deck,deck), saveGame=()=>store(K.game,game);
+const allCards=()=>deck?deck.categories.flatMap(c=>c.cards):[];
+const maxTile=()=>Math.max(100,...allCards().map(c=>c.points));
+const needDeck=()=>{if(!deck){toast('Prima importa o crea un mazzo');return false}return true};
+function findCard(id){if(!deck)return null;for(const c of deck.categories){const k=c.cards.find(x=>x.id===id);if(k)return{card:k,cat:c}}return null}
+function purgeOrphans(){const ids=new Set(allCards().map(c=>c.id));Object.keys(game.completed).forEach(id=>{if(!ids.has(id))delete game.completed[id]})}
 function commit(){saveGame();renderPlayers();renderBoard();broadcast()}
+function setOpt(k,v){settings[k]=v;store(K.set,settings);broadcast()}
+function setNum(k,v,mn,mx){settings[k]=Math.min(mx,Math.max(mn,parseInt(v,10)||mn));store(K.set,settings);renderSettings()}
+function renderSettings(){
+  $('optScores').checked=settings.showScores;$('optPenalty').checked=settings.penalty;
+  $('optBuzz').value=settings.buzzSecs;$('optAns').value=settings.ansSecs;
+}
 function renderAll(){
   const has=!!deck;
-  $('welcome').classList.toggle('hidden',has);
-  $('hostMain').classList.toggle('hidden',!has);
+  $('welcome').classList.toggle('hidden',has);$('hostMain').classList.toggle('hidden',!has);
   $('drawerBtn').classList.toggle('hidden',!has);
   $('soundBtn').textContent=settings.sound?'🔊':'🔇';
+  renderSettings();
   if(has){renderBoard();renderPlayers()}
 }
-const needDeck=()=>{if(!deck){toast('Prima importa o crea un mazzo');return false}return true};
 
 /* =====================================================================
-   4. RENDER HOST
+   4. RENDER CONDUTTORE
    ===================================================================== */
 function renderBoard(){
   if(!deck)return;
   const cats=deck.categories,el=$('gameBoard');
-  el.style.gridTemplateColumns=`repeat(${Math.max(cats.length,1)},minmax(100px,1fr))`;
+  el.style.gridTemplateColumns=`repeat(${Math.max(cats.length,1)},minmax(96px,1fr))`;
   el.innerHTML=cats.map(c=>{
     const tiles=c.cards.slice().sort((a,b)=>a.points-b.points).map(k=>{
       const done=!!game.completed[k.id];
-      return `<button class="tile ${done?'tile-done':''} ${k.dailyDouble?'tile-daily':''}" data-id="${esc(k.id)}" onclick="openCard(this.dataset.id)">${k.points}</button>`;
+      return `<button class="tile ${done?'tile-done':''} ${k.dailyDouble?'tile-dd':''}" data-id="${esc(k.id)}" onclick="tileClick(this.dataset.id)">${k.points}</button>`;
     }).join('');
-    return `<div class="space-y-3 flex flex-col"><div class="glass p-3 rounded-xl text-center"><div class="text-2xl">${esc(c.emoji||'📋')}</div><h3 class="font-serif font-bold text-sm uppercase tracking-wider">${esc(c.title)}</h3></div>${tiles}</div>`;
-  }).join('')||'<p class="text-white/50 text-sm">Nessuna categoria: creala dall\'Editor.</p>';
-  const sh=deck.showdown;
-  // (showdown button removed from board for simplicity; accessible via editor/final)
-}
-function fillSelect(){
-  const sel=$('assignSel');if(!sel)return;
-  sel.innerHTML=game.players.map(p=>`<option value="${p.id}">${esc(p.name)} (${p.score})</option>`).join('');
+    return `<div class="flex flex-col gap-3"><div class="cat-head"><div class="text-2xl">${esc(c.emoji||'📋')}</div><h3>${esc(c.title)}</h3></div>${tiles}</div>`;
+  }).join('')||'<p class="muted text-sm">Nessuna categoria: creala dall\'Editor.</p>';
+  $('fjBox').classList.toggle('hidden',!deck.final);
+  $('fjBtnTxt').textContent=game.fj?'Riprendi Final Jeopardy':'Final Jeopardy';
 }
 function renderPlayers(){
   const list=game.players.slice().sort((a,b)=>b.score-a.score);
   const top=Math.max(...game.players.map(p=>p.score),1);
   $('playersList').innerHTML=list.map(p=>{
     const act=p.id===game.activeId;
-    return `<div class="p-3 rounded-xl border ${act?'bg-jp-blue/50 border-jp-gold/60':'bg-black/30 border-white/10'} flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2 overflow-hidden">
-        <button onclick="setActive(${p.id})" title="Attivo">${act?'🟡':'⚪'}</button>
-        <span class="font-bold text-sm truncate cursor-pointer" onclick="renamePlayer(${p.id})">${p.score===top&&p.score>0?'<span class="text-jp-gold">👑 </span>':''}${esc(p.name)}</span>
+    return `<div data-row="${p.id}" class="row ${act?'!border-yellow-400':''}" style="justify-content:space-between">
+      <div class="flex items-center gap-2 overflow-hidden min-w-0">
+        <button onclick="setActive(${p.id})" title="Ha il controllo">${act?'🟡':'⚪'}</button>
+        <span class="font-bold text-sm truncate cursor-pointer" onclick="renamePlayer(${p.id})">${p.score===top&&p.score>0?'👑 ':''}${esc(p.name)}${p.dv?' 📱':''}</span>
       </div>
-      <div class="flex items-center gap-1">
-        <span class="font-serif font-black text-lg text-jp-gold min-w-[2.5rem] text-right">${p.score}</span>
-        <button class="btn !px-2" onclick="adjust(${p.id},100)">+100</button>
-        <button class="btn !px-2" onclick="adjust(${p.id},-100)">−100</button>
-        <button class="btn !px-2" onclick="removePlayer(${p.id})">🗑</button>
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <span class="font-serif font-black text-lg gold min-w-[2.4rem] text-right">${p.score}</span>
+        <button class="btn !px-2 !min-h-[34px]" onclick="adjust(${p.id},100)">+100</button>
+        <button class="btn !px-2 !min-h-[34px]" onclick="adjust(${p.id},-100)">−100</button>
+        <button class="btn !px-2 !min-h-[34px]" onclick="removePlayer(${p.id})">🗑</button>
       </div></div>`;
-  }).join('')||'<p class="text-xs text-white/50 italic text-center">Nessuna squadra</p>';
-  const a=game.players.find(p=>p.id===game.activeId);$('activeName').textContent=a?a.name:'—';
-  fillSelect();
+  }).join('')||'<p class="text-xs muted italic text-center">Nessuna squadra: aggiungila o fai entrare i telefoni (QR).</p>';
+  const a=pl(game.activeId);$('activeName').textContent=a?a.name:'—';
 }
 function toggleDrawer(o){$('sidePanel').classList.toggle('open',o)}
-function addPlayer(){if(!needDeck())return;const n=prompt('Nome squadra:','Squadra '+(game.players.length+1));if(!n||!n.trim())return;const id=Date.now()+Math.floor(Math.random()*999);game.players.push({id,name:n.trim().slice(0,30),score:0});if(!game.activeId)game.activeId=id;commit()}
-function removePlayer(id){if(!confirm('Rimuovere questa squadra?'))return;game.players=game.players.filter(p=>p.id!==id);if(game.activeId===id)game.activeId=game.players[0]?.id??null;commit()}
-function renamePlayer(id){const p=game.players.find(x=>x.id===id);const n=prompt('Nuovo nome:',p.name);if(n&&n.trim()){p.name=n.trim().slice(0,30);commit()}}
+function addPlayer(){const n=prompt('Nome squadra:','Squadra '+(game.players.length+1));if(!n||!n.trim())return;const id=nid();game.players.push({id,name:n.trim().slice(0,24),score:0,dv:null});if(!pl(game.activeId))game.activeId=id;commit()}
+function removePlayer(id){if(!confirm('Rimuovere questa squadra?'))return;const p=pl(id);game.players=game.players.filter(x=>x.id!==id);if(game.activeId===id)game.activeId=game.players[0]?.id??null;commit()}
+function renamePlayer(id){const p=pl(id);const n=prompt('Nuovo nome:',p.name);if(n&&n.trim()){p.name=n.trim().slice(0,24);commit()}}
 function setActive(id){game.activeId=id;commit()}
-function adjust(id,amt){const p=game.players.find(x=>x.id===id);if(!p)return;p.score+=amt;floatPts(id,amt);playSound(amt>=0?'correct':'wrong');commit()}
+function adjust(id,amt){const p=pl(id);if(!p)return;p.score+=amt;floatPts(id,amt);playSound(amt>=0?'correct':'wrong');commit()}
 function floatPts(pid,amt){
-  const p=game.players.find(x=>x.id===pid);let x=innerWidth/2,y=innerHeight*.35,label='';
-  const row=document.querySelector(`[data-row="${pid}"]`);
-  if(row){const r=row.getBoundingClientRect();x=r.left+r.width/2;y=r.top}
-  label=' · '+(p?p.name:'');
+  if(!amt)return;
+  const p=pl(pid);let x=innerWidth/2,y=innerHeight*.35,label=' · '+(p?p.name:'');
+  const row=document.querySelector(`[data-row="${pid}"]`),modalOpen=document.querySelector('.modal.open');
+  if(row&&!modalOpen){const r=row.getBoundingClientRect();if(r.top>60&&r.bottom<innerHeight){x=r.left+r.width/2;y=r.top;label=''}}
   const el=document.createElement('div');el.className='float-pts '+(amt>=0?'pos':'neg');
   el.textContent=(amt>=0?'+':'−')+Math.abs(amt)+label;el.style.left=x+'px';el.style.top=y+'px';
   document.body.appendChild(el);setTimeout(()=>el.remove(),1400);
 }
 
 /* =====================================================================
-   5. MODALE TESSERA HOST
+   5. TESSERA (HOST)
+   Fasi: bet (solo DD) → read → open → answer → reveal
    ===================================================================== */
+function tileClick(id){
+  if(game.completed[id]){if(confirm('Riattivare questa tessera?')){delete game.completed[id];commit()}return}
+  openCard(id);
+}
 function openCard(id){
-  const f=findCard(id);if(!f)return;initAudio();
-  cur={
-    id,card:f.card,catTitle:f.cat.title,
-    buzzOrder:[],buzzLocked:false,answered:false,result:null,
-    betting:!!f.card.dailyDouble,betAmount:0
-  };
-  renderCardModal();
-  openM('cardModal');
-  broadcast();
+  const f=findCard(id);if(!f)return;
+  if(!game.players.length)return toast('Aggiungi almeno una squadra (o fai entrare i telefoni)');
+  initAudio();
+  const dd=!!f.card.dailyDouble;
+  cur={id,card:f.card,cat:f.cat.title,phase:dd?'bet':'read',order:[],out:[],answering:null,dd,ddPid:null,bet:0,result:null,rp:null,endAt:0};
+  renderCard();
+  if(dd){fillBet();playSound('dd')}
+  openM('cardModal');broadcast();startTick();
 }
-function renderCardModal(){
-  const k=cur.card;
-  $('mCat').textContent=cur.catTitle+(k.dailyDouble?'  <span class="badge-dd">DAILY DOUBLE</span>':'');
-  $('mCat').innerHTML=cur.catTitle+(k.dailyDouble?'  <span class="badge-dd">DAILY DOUBLE</span>':'');
-  $('mPts').textContent=k.points+' Punti';
-
-  // Bet section
-  const mBet=$('mBet');const mQ=$('mQuestionWrap');const mA=$('mAnswerWrap');const mBL=$('mBuzzListWrap');
-  if(cur.betting&&!cur.betAmount){
-    mBet.classList.remove('hidden');mQ.classList.add('hidden');mA.classList.add('hidden');mBL.classList.add('hidden');
-    $('betInput').value='';$('betInput').max=game.players.find(p=>p.id===game.activeId)?.score??0;
-  }else{
-    mBet.classList.add('hidden');
-    if(cur.answered){
-      mQ.classList.remove('hidden');mA.classList.remove('hidden');mBL.classList.add('hidden');
-      $('mQuestion').textContent=k.question;
-      $('mAnswer').textContent=k.answer;
-      $('mAnswer').classList.toggle('reveal',cur.result!==null);
-    }else{
-      mQ.classList.remove('hidden');mA.classList.add('hidden');mBL.classList.remove('hidden');
-      $('mQuestion').textContent=k.question;
-      renderBuzzList();
-    }
-  }
-  updateDoneUI();
+const cardValue=()=>cur.dd?cur.bet:cur.card.points;
+function fillBet(){
+  const sel=$('betTeam');
+  sel.innerHTML=game.players.map(p=>`<option value="${p.id}">${esc(p.name)} (${p.score})</option>`).join('');
+  sel.value=String(pl(game.activeId)?game.activeId:game.players[0].id);
+  $('betInput').value='';updBetHint();
 }
-function renderBuzzList(){
-  const ul=$('mBuzzList');ul.innerHTML='';
-  cur.buzzOrder.forEach((pid,i)=>{
-    const p=game.players.find(x=>x.id===pid);
-    if(!p)return;
-    const li=document.createElement('li');
-    li.className='buzz-item '+(i===0?'first':'');
-    li.innerHTML=`<span class="buzz-order">${i+1}</span><span>${esc(p.name)}</span>`;
-    ul.appendChild(li);
-  });
+function updBetHint(){
+  const p=pl(parseInt($('betTeam').value,10));if(!p)return;
+  $('betHint').textContent=`Puntata valida: da 5 a ${Math.max(p.score,maxTile())} (il suo punteggio o il valore più alto del tabellone).`;
 }
-function toggleAnswer(){$('mAnswer').classList.toggle('reveal')}
-function updateDoneUI(){$('doneBtn').textContent=game.completed[cur.id]?'↩ Riattiva tessera':'✓ Completa tessera'}
-
-/* --- Buzzer host-side (ricevuto da MQTT) --- */
-function registerBuzz(pid){
-  if(cur.answered||cur.buzzLocked)return;
-  if(cur.buzzOrder.includes(pid))return;
-  cur.buzzOrder.push(pid);
-  playSound('buzz');
-  renderCardModal();
-  broadcast();
-}
-function clearBuzzes(){cur.buzzOrder=[];cur.buzzLocked=false;cur.answered=false;cur.result=null;renderCardModal();broadcast()}
-
-/* --- Punteggio e esito --- */
 function confirmBet(){
-  const v=parseInt($('betInput').value,10);
-  const p=game.players.find(x=>x.id===game.activeId);
-  if(isNaN(v)||v<0){toast('Inserisci una puntata valida');return}
-  if(p&&v>p.score){toast('Non hai abbastanza punti');return}
-  cur.betAmount=v;cur.betting=false;
-  renderCardModal();broadcast();
+  const p=pl(parseInt($('betTeam').value,10));if(!p)return;
+  const v=parseInt($('betInput').value,10),mx=Math.max(p.score,maxTile());
+  if(isNaN(v)||v<5||v>mx)return toast(`Puntata non valida (5–${mx})`);
+  cur.ddPid=p.id;cur.bet=v;cur.phase='answer';cur.answering=p.id;cur.endAt=Date.now()+settings.ansSecs*1000;
+  game.activeId=p.id;playSound('open');renderCard();commit();
 }
-function applyResult(pid,ok){
-  const p=game.players.find(x=>x.id===pid);if(!p)return;
-  const base=cur.betAmount||cur.card.points;
-  const pts=ok?base:-base;
-  p.score+=pts;
-  if(ok){game.activeId=pid;playSound('correct');vib([100,50,100])}
-  else{playSound('wrong');vib([200,100,200])}
-  floatPts(pid,pts);
-  cur.answered=true;cur.result=ok?'right':'wrong';
-  cur.buzzLocked=true;
-  renderCardModal();commit();broadcast();
+function renderCard(){
+  if(!cur)return;
+  const k=cur.card,bet=cur.phase==='bet';
+  $('mCat').innerHTML=esc(cur.cat)+(cur.dd?' <span class="badge-dd">DAILY DOUBLE</span>':'');
+  $('mPts').textContent=cur.dd&&cur.bet?`Puntata ${cur.bet}`:k.points+' punti';
+  $('mBet').classList.toggle('hidden',!bet);
+  $('mQwrap').classList.toggle('hidden',bet);
+  $('mQuestion').textContent=k.question;
+  $('mAnswer').textContent=k.answer;
+  $('mCtl').innerHTML=ctlHtml();
+  tickUpdate();
+}
+function ctlHtml(){
+  const c=cur,v=cardValue();
+  const nm=id=>{const p=pl(id);return p?esc(p.name):'?'};
+  if(c.phase==='bet')return '';
+  if(c.phase==='read')return `<div class="flex flex-wrap gap-2"><button class="btn btn-gold !py-3" onclick="openBuzz()">🔔 Apri buzzer (${settings.buzzSecs}s)</button><button class="btn" onclick="noOne()">⏭ Nessuno risponde</button></div><p class="muted text-xs">Leggi la domanda ad alta voce, poi apri il buzzer. Finché non lo apri, i telefoni restano bloccati.</p>`;
+  if(c.phase==='open'){
+    const btns=game.players.filter(p=>!c.out.includes(p.id)).map(p=>`<button class="btn" onclick="hostBuzz(${p.id})">🔔 ${esc(p.name)}</button>`).join('');
+    return `<div id="tmBox" class="timer"></div><p class="muted text-xs">Buzzer aperto: vince il primo telefono che preme. Per le squadre senza telefono usa questi pulsanti:</p><div class="flex flex-wrap gap-2">${btns}</div><button class="btn" onclick="noOne()">⏭ Nessuno risponde</button>`;
+  }
+  if(c.phase==='answer'){
+    const pen=(c.dd||settings.penalty)?v:0;
+    return `<div class="flex items-center justify-between flex-wrap gap-2"><div class="font-serif text-xl">🎤 Risponde: <b class="gold">${nm(c.answering)}</b></div><div id="tmBox" class="timer"></div></div>
+      <div class="flex gap-2"><button class="btn btn-green flex-1 !py-3" onclick="markRight()">✓ Giusta (+${v})</button><button class="btn btn-red flex-1 !py-3" onclick="markWrong()">✗ Sbagliata (−${pen})</button></div>
+      ${c.dd?'':'<button class="btn" onclick="unbuzz()">↩ Annulla prenotazione (riapri buzzer)</button>'}`;
+  }
+  let r='';
+  if(c.result==='right')r=`✅ <b class="gold">${nm(c.rp)}</b> risponde correttamente`;
+  else if(c.result==='wrong')r=`❌ <b class="gold">${nm(c.rp)}</b> sbaglia`;
+  else r='⏰ Nessuno ha risposto';
+  return `<div class="box text-center font-serif text-xl">${r}</div><button class="btn btn-gold w-full !py-3" onclick="finishCard()">✓ Completa e chiudi tessera</button>`;
+}
+function openBuzz(){
+  if(!cur)return;cur.phase='open';cur.order=[];cur.answering=null;cur.endAt=Date.now()+settings.buzzSecs*1000;
+  lastSec=-1;playSound('open');renderCard();broadcast();
+}
+function noOne(){if(!cur)return;cur.phase='reveal';cur.result='none';cur.rp=null;renderCard();broadcast()}
+function unbuzz(){if(!cur||cur.phase!=='answer'||cur.dd)return;openBuzz()}
+function hostBuzz(pid){registerBuzz(pid)}
+function registerBuzz(pid){
+  if(!cur||cur.phase!=='open')return;
+  if(cur.out.includes(pid)||!pl(pid))return;
+  cur.answering=pid;cur.phase='answer';cur.endAt=Date.now()+settings.ansSecs*1000;lastSec=-1;
+  playSound('buzz');vib([80,40,80]);toast('🔔 '+pl(pid).name+'!');
+  renderCard();broadcast();
 }
 function markRight(){
-  if(cur.buzzOrder.length===0)return toast('Nessuno ha premuto il buzzer');
-  const pid=cur.buzzOrder[0];
-  applyResult(pid,true);
+  if(!cur||cur.phase!=='answer')return;const p=pl(cur.answering);if(!p)return;
+  const v=cardValue();p.score+=v;game.activeId=p.id;
+  cur.phase='reveal';cur.result='right';cur.rp=p.id;
+  floatPts(p.id,v);playSound('correct');vib([100,50,100]);renderCard();commit();
 }
 function markWrong(){
-  if(cur.buzzOrder.length===0)return toast('Nessuno ha premuto il buzzer');
-  const pid=cur.buzzOrder[0];
-  applyResult(pid,false);
-  // Sblocca nuovi buzzer per gli altri (semplificato: dopo errore si può rigiocare)
-  setTimeout(()=>{cur.buzzOrder=[];cur.buzzLocked=false;renderCardModal();broadcast()},1500);
+  if(!cur||cur.phase!=='answer')return;const p=pl(cur.answering);if(!p)return;
+  const v=cardValue(),pen=(cur.dd||settings.penalty)?v:0;
+  p.score-=pen;cur.out.push(p.id);floatPts(p.id,-pen);playSound('wrong');vib([200,100,200]);
+  const left=game.players.filter(x=>!cur.out.includes(x.id));
+  if(cur.dd||!left.length){cur.phase='reveal';cur.result='wrong';cur.rp=p.id}
+  else{cur.phase='open';cur.order=[];cur.answering=null;cur.endAt=Date.now()+settings.buzzSecs*1000;lastSec=-1}
+  renderCard();commit();
 }
-function toggleCompleted(){
-  const id=cur.id;
-  if(game.completed[id]){delete game.completed[id];commit();updateDoneUI();return}
-  game.completed[id]=true;commit();closeCard();
-  setTimeout(()=>{
-    if(allCards().length&&allCards().every(c=>game.completed[c.id])&&!game.ended){
-      if(confirm('Tutte le tessere sono state giocate. Vuoi vedere la classifica finale?'))showFinal();
-    }
-  },500);
+function finishCard(){
+  if(!cur)return;
+  game.completed[cur.id]=true;
+  closeCard();commit();
+  if(deck&&allCards().every(c=>game.completed[c.id]))toast(deck.final?'🎉 Tabellone finito! Ora tocca al Final Jeopardy':'🎉 Tabellone finito! Vai su 🏁 Classifica');
 }
-function closeCard(){cur=null;broadcast();closeM('cardModal')}
+function closeCard(){cur=null;lastSec=-1;broadcast();closeM('cardModal')}
+
+/* timer */
+function tickUpdate(){
+  const tb=$('tmBox');
+  if(cur&&tb&&(cur.phase==='open'||cur.phase==='answer')){
+    const s=Math.max(0,Math.ceil((cur.endAt-Date.now())/1000));
+    tb.textContent='⏱ '+s+'s';tb.classList.toggle('danger',s<=3);
+    if(s<=3&&s!==lastSec&&s>0){lastSec=s;playSound('tick')}
+  }
+}
+function tick(){
+  let active=false;
+  if(cur){
+    active=true;
+    if(cur.phase==='open'&&Date.now()>=cur.endAt){cur.phase='reveal';cur.result='none';cur.rp=null;playSound('wrong');renderCard();broadcast()}
+    tickUpdate();
+  }
+  const f=game.fj;
+  if(f&&f.phase==='clue'){active=true;if(Date.now()>=f.endAt)fjToJudge();else fjTimerUpdate()}
+  if(!active){clearInterval(tickInt);tickInt=null}
+}
+function startTick(){if(!tickInt)tickInt=setInterval(tick,250)}
 
 /* =====================================================================
-   6. FINALE
+   6. FINAL JEOPARDY (HOST)
+   ===================================================================== */
+function openFJ(){
+  if(!deck||!deck.final)return toast('Il mazzo non ha un Final Jeopardy (aggiungilo dall\'Editor)');
+  if(!game.fj){
+    const elig=game.players.filter(p=>p.score>0).map(p=>p.id);
+    if(!elig.length)return toast('Nessuna squadra con punteggio positivo');
+    if(!confirm(`Iniziare il Final Jeopardy? Partecipano ${elig.length} squadre con punteggio > 0.`))return;
+    game.fj={phase:'cat',elig,wagers:{},answers:{},judged:{},endAt:0};
+    saveGame();broadcast();renderBoard();playSound('dd');
+  }
+  openM('fjModal');renderFJ();startTick();
+}
+function renderFJ(){
+  const f=game.fj;if(!f||!deck||!deck.final)return;
+  const fin=deck.final,elig=f.elig.map(pl).filter(Boolean);
+  let h=`<div class="card-question"><div class="small gold">Categoria</div>${esc(fin.category)}</div>`;
+  if(f.phase==='cat'){
+    h+=`<p class="muted text-sm">Le squadre inviano la puntata segreta dal telefono (da 0 al proprio punteggio). Per chi non ha il telefono usa ✏️.</p>`;
+    h+=elig.map(p=>`<div class="row" style="justify-content:space-between"><span class="font-bold">${esc(p.name)} <span class="muted">(${p.score})</span></span><span>${f.wagers[p.id]!==undefined?'✅ puntata '+f.wagers[p.id]:'⏳ …'} <button class="btn !min-h-[32px] !px-2" onclick="fjSetW(${p.id})">✏️</button></span></div>`).join('');
+    h+=`<button class="btn btn-gold w-full !py-3" onclick="fjToClue()">▶ Mostra l'indizio (${FJ_SECS}s)</button>`;
+  }else if(f.phase==='clue'){
+    h+=`<div class="card-question">${esc(fin.question)}</div><div id="fjTimer" class="timer text-center"></div>`;
+    h+=elig.map(p=>`<div class="row" style="justify-content:space-between"><span class="font-bold">${esc(p.name)}</span><span>${f.answers[p.id]!==undefined?'✅ risposto':'⏳ …'} <button class="btn !min-h-[32px] !px-2" onclick="fjSetA(${p.id})">✏️</button></span></div>`).join('');
+    h+=`<button class="btn w-full" onclick="fjToJudge()">⏹ Chiudi le risposte</button>`;
+  }else{
+    h+=`<div class="card-question">${esc(fin.question)}</div><div class="ans-host"><div class="small muted">Risposta corretta</div><div style="font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--gold);font-weight:700">${esc(fin.answer)}</div></div>`;
+    h+=elig.map(p=>{
+      const j=f.judged[p.id],w=f.wagers[p.id]||0;
+      return `<div class="box space-y-2"><div class="flex justify-between"><b>${esc(p.name)}</b><span class="gold font-bold">Puntata ${w}</span></div><div class="font-serif text-lg">«${esc(f.answers[p.id]||'(nessuna risposta)')}»</div>${j===undefined?`<div class="flex gap-2"><button class="btn btn-green flex-1" onclick="fjJudge(${p.id},true)">✓ Giusta (+${w})</button><button class="btn btn-red flex-1" onclick="fjJudge(${p.id},false)">✗ Sbagliata (−${w})</button></div>`:`<div class="font-bold ${j?'text-green-400':'text-red-400'}">${j?'✅ Giusta':'❌ Sbagliata'}</div>`}</div>`;
+    }).join('');
+    const all=elig.every(p=>f.judged[p.id]!==undefined);
+    h+=`<button class="btn btn-gold w-full !py-3" ${all?'':'disabled'} onclick="fjEnd()">🏆 Mostra classifica finale</button>`;
+  }
+  $('fjBody').innerHTML=h;fjTimerUpdate();
+}
+function fjTimerUpdate(){const f=game.fj,el=$('fjTimer');if(!f||!el)return;const s=Math.max(0,Math.ceil((f.endAt-Date.now())/1000));el.textContent='⏱ '+s+'s';el.classList.toggle('danger',s<=5)}
+function fjSetW(pid){
+  const p=pl(pid);const v=prompt(`Puntata di ${p.name} (0–${p.score}):`,game.fj.wagers[pid]??0);if(v===null)return;
+  const n=Math.min(p.score,Math.max(0,parseInt(v,10)||0));game.fj.wagers[pid]=n;saveGame();renderFJ();broadcast();
+}
+function fjSetA(pid){
+  const p=pl(pid);const v=prompt(`Risposta di ${p.name}:`,game.fj.answers[pid]||'');if(v===null)return;
+  game.fj.answers[pid]=v.slice(0,120);saveGame();renderFJ();broadcast();
+}
+function fjToClue(){const f=game.fj;f.phase='clue';f.endAt=Date.now()+FJ_SECS*1000;saveGame();renderFJ();broadcast();startTick();playSound('open')}
+function fjToJudge(){
+  const f=game.fj;if(!f||f.phase==='judge')return;
+  f.phase='judge';f.endAt=0;f.elig.forEach(id=>{if(f.wagers[id]===undefined)f.wagers[id]=0});
+  saveGame();renderFJ();broadcast();playSound('wrong');
+}
+function fjJudge(pid,ok){
+  const f=game.fj;if(!f||f.phase!=='judge'||f.judged[pid]!==undefined)return;const p=pl(pid);if(!p)return;
+  const w=f.wagers[pid]||0;p.score+=ok?w:-w;f.judged[pid]=ok;floatPts(pid,ok?w:-w);playSound(ok?'correct':'wrong');
+  commit();renderFJ();
+}
+function fjEnd(){closeM('fjModal',()=>showFinal())}
+
+/* =====================================================================
+   7. CLASSIFICA FINALE
    ===================================================================== */
 function podiumHtml(list){
-  const s=list.slice().sort((a,b)=>b.score-a.score);
-  const order=[1,0,2],h=['h-28','h-40','h-20'],m=['🥈','🥇','🥉'],dl=['.5s','1.1s','0s'];
-  return `<div class="flex items-end justify-center gap-4">`+order.map((idx,c)=>{
-    const p=s[idx];if(!p)return '<div class="w-32"></div>';
-    return `<div class="text-center w-32 sm:w-40"><div class="font-serif font-bold truncate text-jp-gold">${esc(p.name)}</div><div class="text-2xl font-black text-jp-gold">${p.score} pt</div><div class="rounded-t-xl bg-gradient-to-t from-jp-blue to-jp-gold/80 flex items-start justify-center text-4xl pt-2 mt-2 ${h[c]}" style="animation-delay:${dl[c]}">${m[c]}</div></div>`;
+  const s=list.slice().sort((a,b)=>b.score-a.score),order=[1,0,2],h=[110,150,80],m=['🥈','🥇','🥉'];
+  return `<div class="flex items-end justify-center gap-3">`+order.map((idx,c)=>{
+    const p=s[idx];if(!p)return '<div style="width:96px"></div>';
+    return `<div class="text-center" style="width:104px"><div class="font-serif font-bold truncate gold">${esc(p.name)}</div><div class="font-black gold">${p.score} pt</div><div class="pod" style="height:${h[c]}px">${m[c]}</div></div>`;
   }).join('')+`</div>`;
 }
+let confettiTimer=null;
 function fireConfetti(){
-  if(!window.confetti)return;
-  const end=Date.now()+3000;
-  const iv=setInterval(()=>{
-    if(Date.now()>end){clearInterval(iv);return}
-    confetti({particleCount:5,angle:60,spread:70,origin:{x:0,y:.8}});
-    confetti({particleCount:5,angle:120,spread:70,origin:{x:1,y:.8}});
-  },100);
+  if(!window.confetti)return;clearInterval(confettiTimer);const end=Date.now()+3500;
+  confettiTimer=setInterval(()=>{
+    if(Date.now()>end)return clearInterval(confettiTimer);
+    confetti({particleCount:6,angle:60,spread:60,origin:{x:0,y:.8}});
+    confetti({particleCount:6,angle:120,spread:60,origin:{x:1,y:.8}});
+  },120);
 }
 function showFinal(){
   if(!needDeck())return;
   game.ended=true;saveGame();broadcast();
   const ps=game.players.slice().sort((a,b)=>b.score-a.score);
   const total=allCards().length,done=allCards().filter(c=>game.completed[c.id]).length;
-  $('finalBody').innerHTML=podiumHtml(ps)+
-    `<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center">
-      ${[['Tessere',done+'/'+total],['Squadre',ps.length]].map(([l,v])=>`<div class="p-3 rounded-xl bg-black/40 border border-jp-gold/40"><div class="text-2xl font-serif font-black text-jp-gold">${v}</div><div class="text-[11px] text-white/60 uppercase">${l}</div></div>`).join('')}
-    </div>
-    <table class="w-full text-sm border border-white/10"><thead class="text-white/50 text-xs uppercase"><tr><th class="text-left p-2">Squadra</th><th class="text-right p-2">Punti</th></tr></thead><tbody>
-      ${ps.map(p=>`<tr class="border-t border-white/10 text-center"><td class="text-left p-2 font-serif font-bold">${esc(p.name)}</td><td class="text-right p-2 text-jp-gold">${p.score}</td></tr>`).join('')}
-    </tbody></table>
+  $('finalBody').innerHTML=podiumHtml(ps.map(p=>({name:p.name,score:p.score})))+
+    `<div class="grid grid-cols-2 gap-3 text-center">${[['Tessere giocate',done+'/'+total],['Squadre',ps.length]].map(([l,v])=>`<div class="box"><div class="text-2xl font-serif font-black gold">${v}</div><div class="small muted">${l}</div></div>`).join('')}</div>
+    <div class="space-y-2">${ps.map((p,i)=>`<div class="row" style="justify-content:space-between"><span class="font-bold">${i+1}. ${esc(p.name)}</span><b class="gold">${p.score}</b></div>`).join('')}</div>
     <div class="flex justify-center"><button class="btn btn-red" onclick="resetGame()">🔄 Nuova partita</button></div>`;
   openM('finalModal');setTimeout(()=>{playSound('win');fireConfetti()},300);
 }
 function closeFinal(){game.ended=false;saveGame();closeM('finalModal');broadcast()}
 function resetGame(){
-  if(!confirm('Nuova partita? Punteggi e tessere verranno azzerati.'))return;
-  game.players.forEach(p=>p.score=0);game.completed={};game.ended=false;
-  closeM('finalModal');closeM('cardModal');cur=null;commit();
+  if(!confirm('Nuova partita? Punteggi e tessere vengono azzerati (le squadre restano).'))return;
+  game.players.forEach(p=>p.score=0);game.completed={};game.ended=false;game.fj=null;
+  cur=null;['cardModal','finalModal','fjModal'].forEach(m=>$(m).classList.remove('open','closing'));
+  commit();
 }
 
 /* =====================================================================
-   7. EDITOR
+   8. EDITOR & MAZZO
    ===================================================================== */
+function demoDeck(){
+  const c=(id,title,emoji,arr)=>({id,title,emoji,cards:arr.map((x,i)=>({id:id+'_'+(i+1),points:(i+1)*100,question:x[0],answer:x[1],dailyDouble:!!x[2]}))});
+  return{version:2,categories:[
+    c('geo','Geografia','🌍',[["È il fiume più lungo d'Italia.","Il Po"],["Capitale dell'Australia (non è Sydney).","Canberra"],["La montagna più alta delle Alpi.","Il Monte Bianco"],["È il più grande deserto caldo del mondo.","Il Sahara"]]),
+    c('cin','Cinema','🎬',[["Regista italiano de «La dolce vita» e «8½».","Federico Fellini"],["Film Pixar del 2003 in cui un pesce pagliaccio cerca suo figlio.","Alla ricerca di Nemo"],["L'attore che interpreta Jack Dawson in «Titanic».","Leonardo DiCaprio"],["Saga fantasy di Peter Jackson tratta dai libri di Tolkien.","Il Signore degli Anelli"]]),
+    c('sci','Scienza','🔬',[["Il simbolo chimico dell'oro.","Au"],["Il pianeta più vicino al Sole.","Mercurio"],["È il gas più abbondante nell'atmosfera terrestre.","L'azoto",true],["Il numero atomico del carbonio.","6"]]),
+    c('sto','Storia','🏛️',[["Anno in cui l'uomo mise piede sulla Luna.","1969"],["Il dittatore romano ucciso alle Idi di marzo del 44 a.C.","Giulio Cesare"],["Città sepolta dall'eruzione del Vesuvio nel 79 d.C. insieme a Ercolano.","Pompei"],["Anno della caduta del Muro di Berlino.","1989"]])
+  ],final:{category:'Italia',question:'È la regione italiana con il maggior numero di abitanti.',answer:'La Lombardia'}};
+}
+function loadDemo(){deck=demoDeck();purgeOrphans();saveDeck();edCat=deck.categories[0].id;renderAll();commit();toast('Mazzo demo caricato')}
 let edTab='cats',edCat=null,edCardId=null;
 function openEditor(tab){
-  if(!needDeck())return;
-  edTab=tab||edTab;
-  if(!edCat||(edCat!=='__show'&&!deck.categories.some(c=>c.id===edCat)))edCat=deck.categories[0]?.id||'__show';
+  if(!needDeck())return;edTab=tab||edTab;
+  if(!edCat||!deck.categories.some(c=>c.id===edCat))edCat=deck.categories[0]?.id||null;
   renderEditor();openM('editorModal');
 }
 function finishEdit(){closeM('editorModal',()=>openQR())}
 function renderEditor(){
-  const tabs=[['cats','📂 Categorie'],['cards','🃏 Tessere'],['json','💾 Import/Export']];
+  const tabs=[['cats','📂 Categorie'],['cards','🃏 Tessere'],['final','⚡ Finale'],['json','💾 Import/Export']];
   $('edTabs').innerHTML=tabs.map(([k,l])=>`<button class="btn ${edTab===k?'btn-gold':''}" onclick="edTab='${k}';renderEditor()">${l}</button>`).join('');
-  $('edBody').innerHTML=edTab==='cats'?edCatsHtml():edTab==='cards'?edCardsHtml():edJsonHtml();
+  $('edBody').innerHTML=edTab==='cats'?edCatsHtml():edTab==='cards'?edCardsHtml():edTab==='final'?edFinalHtml():edJsonHtml();
+  if(edTab==='cards')updQPrev();
 }
-function edAfter(){saveDeck();saveGame();renderBoard();renderPlayers();broadcast();renderEditor()}
+function edAfter(){saveDeck();saveGame();renderBoard();broadcast();renderEditor()}
 function edCatsHtml(){
   return deck.categories.map((c,i)=>`<div class="flex gap-2 items-center">
-    <input class="inp !w-16 text-center font-serif font-black text-jp-gold" maxlength="2" value="${esc(c.emoji||'📋')}" onchange="edCatSet(${i},'emoji',this.value)">
+    <input class="inp !w-16 text-center" maxlength="4" value="${esc(c.emoji||'📋')}" onchange="edCatSet(${i},'emoji',this.value)">
     <input class="inp" value="${esc(c.title)}" onchange="edCatSet(${i},'title',this.value)">
-    <span class="text-xs text-white/60 whitespace-nowrap">${c.cards.length}🃏</span>
+    <span class="text-xs muted whitespace-nowrap">${c.cards.length}🃏</span>
     <button class="btn" onclick="edCatMove(${i},-1)">↑</button><button class="btn" onclick="edCatMove(${i},1)">↓</button>
-    <button class="btn btn-red" onclick="edCatDel(${i})">🗑</button></div>`).join('')+
-    `<button class="btn btn-blue" onclick="edCatAdd()">+ Aggiungi categoria</button>`;
+    <button class="btn btn-red" onclick="edCatDel(${i})">🗑</button></div>`).join('')+`<button class="btn btn-blue" onclick="edCatAdd()">+ Aggiungi categoria</button>`;
 }
 function edCatSet(i,k,v){v=v.trim();if(v)deck.categories[i][k]=v;edAfter()}
 function edCatMove(i,d){const j=i+d,a=deck.categories;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];edAfter()}
-function edCatDel(i){const c=deck.categories[i];if(!confirm(`Eliminare "${c.title}"?`))return;deck.categories.splice(i,1);purgeOrphans();saveGame();edCat=deck.categories[0]?.id||'__show';edAfter();renderEditor();renderPlayers()}
+function edCatDel(i){const c=deck.categories[i];if(!confirm(`Eliminare "${c.title}" e le sue ${c.cards.length} tessere?`))return;deck.categories.splice(i,1);purgeOrphans();edCat=deck.categories[0]?.id||null;edAfter()}
 function edCatAdd(){const c={id:uid(),title:'Nuova categoria',emoji:'📋',cards:[]};deck.categories.push(c);edCat=c.id;edAfter()}
 function edCardsHtml(){
-  const opts=deck.categories.map(c=>`<option value="${esc(c.id)}" ${c.id===edCat?'selected':''}>${esc((c.emoji||'')+' '+c.title)}</option>`).join('')+`<option value="__show" ${edCat==='__show'?'selected':''}>★ Final Jeopardy</option>`;
-  const list=edCat==='__show'?(deck.showdown?[deck.showdown]:[]):(deck.categories.find(c=>c.id===edCat)?.cards||[]);
-  const k=edCardId?(findCard(edCardId)?.card):null;
-  const v=k||{points:200,question:'',answer:'',dailyDouble:false};
-  return `<div class="flex gap-2 items-center mb-3"><label class="text-xs text-white/60">Categoria:</label><select class="inp !w-auto" onchange="edCat=this.value;edCardId=null;renderEditor()">${opts}</select></div>
-  <div class="space-y-2">${list.slice().sort((a,b)=>a.points-b.points).map(c=>`<div class="flex items-center gap-2 p-3 rounded-xl bg-black/30 border border-white/10 text-xs"><b class="text-jp-gold w-14">${c.points}</b><span class="flex-1 truncate text-white/80">${esc(c.question)}</span>${c.dailyDouble?'<span class="text-xs text-red-400 font-bold">DD</span>':''}<button class="btn btn-blue !px-3" data-id="${esc(c.id)}" onclick="edCardId=this.dataset.id;renderEditor()">✏️</button>${c.id!=='showdown'?`<button class="btn btn-red !px-3" data-id="${esc(c.id)}" onclick="edDelCard(this.dataset.id)">🗑</button>`:''}</div>`).join('')||'<p class="text-xs text-white/50">Nessuna tessera.</p>'}</div>
-  <div class="p-4 rounded-2xl bg-black/40 border border-white/10 space-y-3">
-    <div class="flex justify-between"><h4 class="font-serif font-bold text-jp-gold text-sm">${edCardId?'Modifica':'Nuova'} tessera</h4>${edCardId?'<button class="btn" onclick="edCardId=null;renderEditor()">+ Nuova</button>':''}</div>
-    <div class="grid grid-cols-2 gap-3"><div><label class="text-[11px] text-white/50">Punti</label><input id="fPoints" type="number" class="inp" value="${v.points}"></div>
-      <div><label class="text-[11px] text-white/50">Daily Double</label><input id="fDD" type="checkbox" class="check" ${v.dailyDouble?'checked':''}></div></div>
-    <div><label class="text-[11px] text-white/50">Domanda (mostrata ai concorrenti)</label><textarea id="fQuestion" rows="3" class="inp" oninput="$('fQPrev').textContent=this.value">${esc(v.question)}</textarea><div id="fQPrev" class="mt-1 p-3 rounded-lg bg-black/60 border border-white/10 text-sm text-jp-gold"></div></div>
-    <div><label class="text-[11px] text-white/50">Risposta (host solo)</label><textarea id="fAnswer" rows="3" class="inp">${esc(v.answer)}</textarea></div>
+  if(!deck.categories.length)return '<p class="muted text-sm">Crea prima una categoria.</p>';
+  const opts=deck.categories.map(c=>`<option value="${esc(c.id)}" ${c.id===edCat?'selected':''}>${esc((c.emoji||'')+' '+c.title)}</option>`).join('');
+  const list=deck.categories.find(c=>c.id===edCat)?.cards||[];
+  const k=edCardId?findCard(edCardId)?.card:null;
+  const v=k||{points:(list.length+1)*100,question:'',answer:'',dailyDouble:false};
+  return `<div class="flex gap-2 items-center"><label class="text-xs muted">Categoria:</label><select class="inp !w-auto" onchange="edCat=this.value;edCardId=null;renderEditor()">${opts}</select></div>
+  <div class="space-y-2">${list.slice().sort((a,b)=>a.points-b.points).map(c=>`<div class="row"><b class="gold w-14">${c.points}</b><span class="flex-1 truncate text-sm">${esc(c.question)}</span>${c.dailyDouble?'<span class="badge-dd">DD</span>':''}<button class="btn !px-3" data-id="${esc(c.id)}" onclick="edCardId=this.dataset.id;renderEditor()">✏️</button><button class="btn btn-red !px-3" data-id="${esc(c.id)}" onclick="edDelCard(this.dataset.id)">🗑</button></div>`).join('')||'<p class="text-xs muted">Nessuna tessera.</p>'}</div>
+  <div class="box space-y-3">
+    <div class="flex justify-between"><h4 class="font-serif font-bold gold text-sm">${edCardId?'Modifica':'Nuova'} tessera</h4>${edCardId?'<button class="btn" onclick="edCardId=null;renderEditor()">+ Nuova</button>':''}</div>
+    <div class="grid grid-cols-2 gap-3"><div><label class="text-[11px] muted">Punti</label><input id="fPoints" type="number" class="inp" value="${v.points}"></div>
+      <div><label class="text-[11px] muted">Daily Double</label><div class="pt-2"><input id="fDD" type="checkbox" class="check" ${v.dailyDouble?'checked':''}></div></div></div>
+    <div><label class="text-[11px] muted">Domanda (la vedono i telefoni quando la apri)</label><textarea id="fQuestion" rows="3" class="inp" oninput="updQPrev()">${esc(v.question)}</textarea><div id="fQPrev" class="mt-1 p-2 rounded-lg bg-black/40 text-sm gold"></div></div>
+    <div><label class="text-[11px] muted">Risposta (solo conduttore)</label><textarea id="fAnswer" rows="2" class="inp">${esc(v.answer)}</textarea></div>
     <button class="btn btn-gold" onclick="edSaveCard()">💾 Salva tessera</button>
   </div>`;
 }
+function updQPrev(){const q=$('fQuestion'),p=$('fQPrev');if(q&&p)p.textContent=q.value}
 function edSaveCard(){
   const points=parseInt($('fPoints').value,10),question=$('fQuestion').value.trim(),answer=$('fAnswer').value.trim();
-  if(!(points>0))return alert('Punti non validi');
-  if(!question)return alert('Inserisci la domanda');
-  if(!answer)return alert('Inserisci la risposta');
+  if(!(points>0))return alert('Punti non validi');if(!question)return alert('Inserisci la domanda');if(!answer)return alert('Inserisci la risposta');
   const base={points,question,answer,dailyDouble:$('fDD').checked};
-  if(edCat==='__show'){deck.showdown={...base,id:'showdown'}}
-  else{
-    const cat=deck.categories.find(c=>c.id===edCat);if(!cat)return;
-    if(edCardId){const i=cat.cards.findIndex(c=>c.id===edCardId);if(i>=0)cat.cards[i]={...base,id:edCardId}}
-    else cat.cards.push({...base,id:uid()});
-  }
-  edCardId=null;edAfter();toast('Tessera salvata');
+  const cat=deck.categories.find(c=>c.id===edCat);if(!cat)return;
+  if(edCardId){const i=cat.cards.findIndex(c=>c.id===edCardId);if(i>=0)cat.cards[i]={...base,id:edCardId}}else cat.cards.push({...base,id:uid()});
+  edCardId=null;edAfter();toast('Tessera salvata ✓');
 }
-function edDelCard(id){if(!confirm('Eliminare?'))return;deck.categories.forEach(c=>c.cards=c.cards.filter(k=>k.id!==id));purgeOrphans();saveGame();edCardId=null;edAfter();renderEditor()}
+function edDelCard(id){if(!confirm('Eliminare la tessera?'))return;deck.categories.forEach(c=>c.cards=c.cards.filter(k=>k.id!==id));purgeOrphans();edCardId=null;edAfter()}
+function edFinalHtml(){
+  const f=deck.final||{category:'',question:'',answer:''};
+  return `<p class="text-xs muted">Il Final Jeopardy si gioca a fine partita: puntata segreta, indizio, risposta scritta dai telefoni.</p>
+  <div><label class="text-[11px] muted">Categoria</label><input id="fjCat" class="inp" value="${esc(f.category)}"></div>
+  <div><label class="text-[11px] muted">Indizio</label><textarea id="fjQ" rows="3" class="inp">${esc(f.question)}</textarea></div>
+  <div><label class="text-[11px] muted">Risposta</label><input id="fjA" class="inp" value="${esc(f.answer)}"></div>
+  <div class="flex gap-2"><button class="btn btn-gold" onclick="edSaveFinal()">💾 Salva</button><button class="btn btn-red" onclick="deck.final=null;edAfter()">🗑 Rimuovi finale</button></div>`;
+}
+function edSaveFinal(){
+  const category=$('fjCat').value.trim(),question=$('fjQ').value.trim(),answer=$('fjA').value.trim();
+  if(!category||!question||!answer)return alert('Compila categoria, indizio e risposta');
+  deck.final={category,question,answer};edAfter();toast('Finale salvato ✓');
+}
 function edJsonHtml(){
-  return `<p class="text-xs text-white/60">Esporta/importa il mazzo in JSON.</p>
+  return `<p class="text-xs muted">Esporta/importa il mazzo (categorie, tessere, finale).</p>
   <textarea id="jsonBox" rows="10" class="inp font-mono text-[11px]">${esc(JSON.stringify(deck,null,2))}</textarea>
-  <div class="flex flex-wrap gap-2 mt-2">
-    <button class="btn" onclick="dlDeck()">⬇️ Scarica</button>
-    <button class="btn" onclick="copyDeck()">📋 Copia</button>
-    <button class="btn btn-gold" onclick="applyImport($('jsonBox').value)">⬆️ Importa</button>
-    <label class="btn cursor-pointer">📂 File<input type="file" accept=".json" class="hidden" onchange="importFile(this)"></label>
-    <button class="btn btn-red" onclick="removeDeck()">🗑 Rimuovi</button>
-  </div>`;
+  <div class="flex flex-wrap gap-2"><button class="btn" onclick="dlDeck()">⬇️ Scarica .json</button><button class="btn" onclick="copyDeck()">📋 Copia</button>
+    <button class="btn btn-gold" onclick="applyImport($('jsonBox').value)">⬆️ Importa dal riquadro</button>
+    <label class="btn cursor-pointer">📂 Importa da file<input type="file" accept=".json,application/json" class="hidden" onchange="importFile(this)"></label>
+    <button class="btn btn-red" onclick="removeDeck()">🗑 Rimuovi mazzo</button></div>`;
 }
 function dlDeck(){const b=new Blob([JSON.stringify(deck,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='jeopardy-mazzo.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
-function copyDeck(){navigator.clipboard.writeText($('jsonBox').value).then(()=>toast('Copiato'),()=>toast('Errore copia'))}
+function copyDeck(){navigator.clipboard.writeText($('jsonBox').value).then(()=>toast('Copiato ✓'),()=>toast('Copia non riuscita'))}
+function normalizeDeck(o){
+  if(!o||!Array.isArray(o.categories))throw new Error('manca l\'array "categories".');
+  const used=new Set();
+  const nc=(k,where)=>{
+    const question=k.question??k.text??k.readText;
+    if(typeof question!=='string'||!question.trim())throw new Error('tessera senza domanda ('+where+').');
+    let id=k.id&&String(k.id);if(!id||used.has(id))id=uid();used.add(id);
+    return{id,points:Number(k.points)||100,question:question.trim(),answer:String(k.answer??''),dailyDouble:!!k.dailyDouble};
+  };
+  const cats=o.categories.map(c=>({id:String(c.id||uid()),title:String(c.title||'Categoria'),emoji:String(c.emoji||'📋'),cards:(c.cards||[]).map(k=>nc(k,c.title||'?'))}));
+  let fin=o.final||o.finalJeopardy||o.showdown||null;
+  if(fin){fin={category:String(fin.category||'Final Jeopardy'),question:String(fin.question??fin.text??''),answer:String(fin.answer??'')};if(!fin.question)fin=null}
+  return{version:2,categories:cats,final:fin};
+}
 function applyImport(text){
   try{
-    const d=JSON.parse(text);
-    if(!d.categories)throw new Error('JSON non valido');
-    deck=d;purgeOrphans();saveGame();saveDeck();edCat=deck.categories[0]?.id||'__show';edCardId=null;
-    renderAll();if($('editorModal').classList.contains('open'))renderEditor();toast('Mazzo importato');
-  }catch(e){alert('Import fallito: '+e.message)}
+    const d=normalizeDeck(JSON.parse(text));
+    if(deck&&!confirm('Sostituire il mazzo attuale con quello importato?'))return;
+    deck=d;purgeOrphans();if(!deck.final)game.fj=null;saveGame();saveDeck();edCat=deck.categories[0]?.id||null;edCardId=null;
+    renderAll();broadcast();if($('editorModal').classList.contains('open'))renderEditor();toast('Mazzo importato ✓');
+  }catch(e){alert('Impossibile importare il mazzo: '+e.message)}
 }
-function importFile(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>applyImport(String(r.result));r.readAsText(f);inp.value=''}
-function createEmptyDeck(){deck={categories:[{id:uid(),title:'Categoria 1',emoji:'📋',cards:[]}],showdown:null};saveDeck();edCat=deck.categories[0].id;renderAll();openEditor('cards')}
-function removeDeck(){if(!confirm('Rimuovere il mazzo?'))return;deck=null;localStorage.removeItem(DECK_KEY);game=newGame();saveGame();closeM('editorModal');renderAll();broadcast()}
+function importFile(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>applyImport(String(r.result));r.onerror=()=>alert('Lettura non riuscita.');r.readAsText(f);inp.value=''}
+function createEmptyDeck(){deck={version:2,categories:[{id:uid(),title:'Categoria 1',emoji:'📋',cards:[]}],final:null};saveDeck();edCat=deck.categories[0].id;renderAll();openEditor('cards')}
+function removeDeck(){if(!confirm('Rimuovere il mazzo dal dispositivo? Esportalo prima se ti serve.'))return;deck=null;localStorage.removeItem(K.deck);game.completed={};game.fj=null;saveGame();closeM('editorModal');renderAll();broadcast()}
 
 /* =====================================================================
-   8. SINCRONIZZAZIONE LIVE (MQTT) HOST
+   9. SYNC LIVE (MQTT) – CONDUTTORE
    ===================================================================== */
+let hostId=null,hbTimer=null,hostClients=[];
+const seen=new Map();
+function fjPublic(){
+  const f=game.fj;if(!f||!deck||!deck.final)return null;
+  const num=o=>Object.keys(o).map(Number);
+  return{ph:f.phase,cat:deck.final.category,q:f.phase==='cat'?null:deck.final.question,elig:f.elig,
+    wd:num(f.wagers),ad:num(f.answers),rem:f.phase==='clue'?Math.max(0,f.endAt-Date.now()):0,
+    rv:f.elig.filter(id=>f.judged[id]!==undefined).map(id=>({id,w:f.wagers[id]||0,a:f.answers[id]||'',ok:!!f.judged[id]}))};
+}
 function snapshot(){
-  const sp=settings.showScores||game.ended;
-  return{
-    t:'state',ts:Date.now(),
-    cats:deck?deck.categories.filter(c=>c.cards.length).map(c=>({
-      id:c.id,title:c.title,emoji:c.emoji||'📋',
-      cards:c.cards.slice().sort((a,b)=>a.points-b.points).map(k=>({id:k.id,p:k.points,d:!!game.completed[k.id],dd:!!k.dailyDouble}))
-    })):[],
-    open:cur?{
-      id:cur.id,cat:cur.catTitle,q:cur.card.question,p:cur.card.points,
-      buzzOrder:cur.buzzOrder,locked:cur.buzzLocked,answered:cur.answered,
-      result:cur.result,betting:cur.betting,betAmount:cur.betAmount,
-      dd:!!cur.card.dailyDouble
-    }:null,
-    players:sp?game.players.map(p=>({n:p.name,s:p.score})):null,
-    ended:!!game.ended
-  };
+  const sp=settings.showScores||game.ended||!!game.fj;
+  const o=cur?{id:cur.id,cat:cur.cat,p:cur.card.points,dd:cur.dd,ph:cur.phase,
+    q:cur.phase==='bet'?null:cur.card.question,a:cur.answering,out:cur.out,ddp:cur.ddPid,bet:cur.bet,
+    rem:(cur.phase==='open'||cur.phase==='answer')?Math.max(0,cur.endAt-Date.now()):0,
+    res:cur.result,rp:cur.rp,ans:cur.phase==='reveal'?cur.card.answer:null}:null;
+  return{t:'state',ts:Date.now(),
+    cats:deck?deck.categories.filter(c=>c.cards.length).map(c=>({id:c.id,title:c.title,emoji:c.emoji||'📋',cards:c.cards.slice().sort((a,b)=>a.points-b.points).map(k=>({id:k.id,p:k.points,d:!!game.completed[k.id]}))})):[],
+    open:o,act:game.activeId,
+    players:game.players.map(p=>sp?{id:p.id,n:p.name,dv:p.dv||null,s:p.score}:{id:p.id,n:p.name,dv:p.dv||null}),
+    sc:sp,fj:fjPublic(),ended:!!game.ended};
 }
 function broadcast(){
   if(!hostId)return;
   const msg=JSON.stringify(snapshot());
-  hostClients.forEach(c=>{if(c.connected)try{c.publish('jeopardy1/'+hostId+'/s',msg,{qos:0,retain:true})}catch{}});
+  hostClients.forEach(c=>{if(c.connected)try{c.publish(NS+'/'+hostId+'/s',msg,{qos:0,retain:true})}catch{}});
   updateSyncUI();
 }
 function setSync(st){window._sync=st;updateSyncUI()}
 function phoneCount(){const now=Date.now();let n=0;seen.forEach(t=>{if(now-t<20000)n++});return n}
 function updateSyncUI(){
-  const b=$('syncBadge');if(!b)return;
-  const st=window._sync,n=phoneCount();
-  b.textContent=st==='online'?`● Live · ${n}`:st==='connecting'?'● Connessione…':'● Offline';
-  b.style.color=st==='online'?'#0aa56f':st==='connecting'?'#F4D03F':'#b91c1c';
-  const q=$('qrCount');if(q)q.textContent=st==='online'?`📶 ${n} telefoni`:'';
+  const b=$('syncBadge');if(!b)return;const st=window._sync,n=phoneCount();
+  b.textContent=st==='online'?`● Live · ${n} telefoni`:st==='connecting'?'● Connessione…':'● Sync offline';
+  b.style.color=st==='online'?'#2fe0a0':st==='connecting'?'#F4D03F':'#ff6b6b';
+  const q=$('qrCount');if(q)q.textContent=st==='online'?`📶 ${n} telefoni connessi`:'';
 }
 function refreshSync(){setSync(hostClients.some(c=>c.connected)?'online':'connecting')}
 
-function initHostPeer(){
+/* messaggi dai telefoni */
+function handleJoin(dv,name){
+  name=String(name||'').trim().slice(0,24);if(!name)return;
+  let p=game.players.find(x=>x.dv===dv),changed=false;
+  const taken=n=>game.players.some(x=>x.dv!==dv&&x.name.toLowerCase()===n.toLowerCase()&&x.dv);
+  if(p){if(p.name!==name){p.name=name;changed=true}}
+  else{
+    p=game.players.find(x=>!x.dv&&x.name.toLowerCase()===name.toLowerCase());
+    if(p){p.dv=dv;changed=true}
+    else{let n=name,i=2;while(taken(n))n=name+' '+(i++);p={id:nid(),name:n,score:0,dv};game.players.push(p);if(!pl(game.activeId))game.activeId=p.id;changed=true}
+  }
+  if(changed){commit();toast('📱 '+p.name+' è entrata')}
+}
+function onClientMsg(d){
+  if(!d||!d.dv)return;
+  seen.set(d.dv,Date.now());
+  const p=game.players.find(x=>x.dv===d.dv);
+  switch(d.t){
+    case 'join':handleJoin(d.dv,d.name);break;
+    case 'buzz':if(p)registerBuzz(p.id);break;
+    case 'fjw':{
+      const f=game.fj;if(!p||!f||f.phase!=='cat'||!f.elig.includes(p.id))break;
+      const w=Math.min(p.score,Math.max(0,parseInt(d.w,10)||0));
+      if(f.wagers[p.id]!==w){f.wagers[p.id]=w;saveGame();renderFJ();broadcast()}break}
+    case 'fja':{
+      const f=game.fj;if(!p||!f||f.phase!=='clue'||!f.elig.includes(p.id))break;
+      const a=String(d.a||'').slice(0,120);
+      if(f.answers[p.id]!==a){f.answers[p.id]=a;saveGame();renderFJ();broadcast()}break}
+  }
+  updateSyncUI();
+}
+function initHost(){
   if(!window.mqtt){setSync('offline');return}
-  clearInterval(hbTimer);
-  hostClients.forEach(c=>{try{c.end(true)}catch{}});hostClients=[];
-  hostId=load(PEER_KEY)||('r'+Math.random().toString(36).slice(2,12));
-  store(PEER_KEY,hostId);
+  clearInterval(hbTimer);hostClients.forEach(c=>{try{c.end(true)}catch{}});hostClients=[];
+  hostId=load(K.room)||('r'+Math.random().toString(36).slice(2,12));store(K.room,hostId);
   setSync('connecting');renderQR();
-
   BROKERS.forEach(url=>{
     const c=mqtt.connect(url,{clientId:'jp-h-'+Math.random().toString(16).slice(2,10),reconnectPeriod:3000,connectTimeout:10000});
     hostClients.push(c);
-    c.on('connect',()=>{c.subscribe('jeopardy1/'+hostId+'/p');c.subscribe('jeopardy1/'+hostId+'/buzz');refreshSync();broadcast()});
+    c.on('connect',()=>{c.subscribe(NS+'/'+hostId+'/c',{qos:1});refreshSync();broadcast()});
     c.on('close',refreshSync);
-    c.on('error',e=>console.warn('HOST err',url,e&&e.message));
-    c.on('message',(t,payload)=>{
-      try{
-        const d=JSON.parse(payload.toString());
-        if(t.endsWith('/p')&&d&&d.id){seen.set(d.id,Date.now());updateSyncUI()}
-        if(t.endsWith('/buzz')&&d&&d.id&&cur){registerBuzz(d.id)}
-      }catch{}
-    });
+    c.on('error',e=>console.warn('HOST broker',url,e&&e.message));
+    c.on('message',(t,payload)=>{try{onClientMsg(JSON.parse(payload.toString()))}catch(e){console.warn(e)}});
   });
-  hbTimer=setInterval(()=>{
-    const now=Date.now();seen.forEach((t,k)=>{if(now-t>60000)seen.delete(k)});broadcast();
-  },5000);
+  hbTimer=setInterval(()=>{const now=Date.now();seen.forEach((t,k)=>{if(now-t>60000)seen.delete(k)});broadcast()},5000);
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&hostId)broadcast()});
 
 /* --- QR --- */
 const isLocalHost=h=>h===''||h==='localhost'||/^127\./.test(h)||/^192\.168\./.test(h)||/^10\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h)||h.endsWith('.local');
@@ -866,147 +871,199 @@ function renderQR(){
   box.innerHTML='';$('qrUrl').value=url;$('pubUrl').value=settings.publicUrl||'';
   $('shareBtn').classList.toggle('hidden',!navigator.share);
   const noBase=!baseUrl();warn.classList.toggle('hidden',!noBase);
-  if(noBase){warn.textContent='⚠️ Pubblica su GitHub Pages e incolla l\'URL pubblico.';box.textContent=hostId?'Imposta URL pubblico':'Connessione…';return}
+  if(noBase){warn.textContent='⚠️ Questa pagina non è raggiungibile da Internet. Pubblicala su GitHub Pages e incolla qui sotto l\'URL pubblico.';box.textContent=hostId?'Imposta l\'URL pubblico ↓':'Connessione…';return}
   if(!hostId){box.textContent='Connessione…';return}
   const size=Math.max(180,Math.min(innerWidth-70,420,innerHeight-380));
   if(window.QRCode)new QRCode(box,{text:url,width:size,height:size,colorDark:'#060CE9',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
-  else box.textContent='QR lib non caricata';
+  else box.textContent='Libreria QR non caricata';
 }
-function openQR(){if(!needDeck())return;renderQR();updateSyncUI();openM('qrModal')}
-function savePubUrl(){const v=$('pubUrl').value.trim();if(v){try{new URL(v)}catch{return alert('URL non valido')}}
-  settings.publicUrl=v;store(SET_KEY,settings);renderQR();toast('URL salvato')}
-function copyAudUrl(){const u=audUrl();if(!u)return toast('Imposta prima l\'URL');navigator.clipboard.writeText(u).then(()=>toast('Link copiato'),()=>toast('Errore'))}
+function openQR(){renderQR();updateSyncUI();openM('qrModal')}
+function savePubUrl(){const v=$('pubUrl').value.trim();if(v){try{new URL(v)}catch{return alert('URL non valido (deve iniziare con https://).')}}settings.publicUrl=v;store(K.set,settings);renderQR();toast('URL salvato ✓')}
+function copyAudUrl(){const u=audUrl();if(!u)return toast('Imposta prima l\'URL pubblico');navigator.clipboard.writeText(u).then(()=>toast('Link copiato ✓'),()=>toast('Copia non riuscita'))}
 function shareAudUrl(){const u=audUrl();if(u&&navigator.share)navigator.share({title:'Jeopardy!',url:u}).catch(()=>{})}
 
-/* Wake lock */
+/* --- Wake lock --- */
 let wl=null;
-function setBanner(extra){$('hostBannerTxt').textContent='📱 Mantieni questa scheda attiva. '+extra;$('hostBanner').classList.remove('hidden')}
+function setBanner(x){$('hostBannerTxt').textContent='📱 Tieni questa scheda in primo piano: se il browser la sospende, i telefoni smettono di aggiornarsi. '+x;$('hostBanner').classList.remove('hidden')}
 async function getWakeLock(){
-  if(!('wakeLock' in navigator)){setBanner('⚠️ Wake lock non supportato');return}
-  try{wl=await navigator.wakeLock.request('screen');setBanner('🔒 Schermo attivo');wl.addEventListener('release',()=>{wl=null})}catch(e){setBanner('⚠️ Wake lock fallito')}
+  if(!('wakeLock' in navigator)){setBanner('⚠️ Il browser non può tenere lo schermo acceso: disattiva lo spegnimento automatico.');return}
+  try{wl=await navigator.wakeLock.request('screen');setBanner('🔒 Schermo mantenuto acceso.');wl.addEventListener('release',()=>{wl=null})}
+  catch(e){setBanner('⚠️ Impossibile bloccare lo spegnimento dello schermo.')}
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('hostApp').classList.contains('hidden')){if(!wl)getWakeLock();broadcast()}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden||$('hostApp').classList.contains('hidden'))return;if(!wl)getWakeLock();if(hostId)broadcast()});
 document.addEventListener('click',()=>{if(!$('hostApp').classList.contains('hidden')&&!wl&&'wakeLock' in navigator)getWakeLock()},{passive:true});
 
 /* =====================================================================
-   9. VISTA CONCORRENTI (CLIENT)
+   10. VISTA CONCORRENTI
    ===================================================================== */
-let audMe=null;
+const A={base:'',dev:'',name:'',cl:[],me:null,state:null,lastTs:0,lastLive:0,gotAny:false,buzzAt:0,openKey:'',fjKey:'',endAt:0,auto:false,seenMe:false,confetti:false,myW:null,myA:'',lastScore:null};
+function audSend(obj){
+  const msg=JSON.stringify(Object.assign({dv:A.dev},obj));
+  A.cl.forEach(c=>{if(c.connected)try{c.publish(A.base+'/c',msg,{qos:1})}catch{}});
+}
+const sendJoin=()=>audSend({t:'join',name:A.name});
+function joinNow(){
+  const n=$('joinName').value.trim().slice(0,24);if(!n)return toast('Scrivi il nome della squadra');
+  A.name=n;A.auto=true;store(K.name,n);sendJoin();$('joinBtn').textContent='Connessione…';
+}
+function audStatus(st){
+  const b=$('audStatus');if(!b)return;
+  const T={online:['● Live','#2fe0a0'],connecting:['● Connessione…','#F4D03F'],nohost:['● Host non trovato…','#ff6b6b'],offline:['● Riconnessione…','#ff6b6b']};
+  const [t,c]=T[st]||T.offline;b.textContent=t;b.style.color=c;
+}
 function startAudience(room){
-  const base='jeopardy1/'+room;
-  audMe=load(AUD_ID_KEY)||uid();store(AUD_ID_KEY,audMe);
-  const cl=[];let lastLive=0,lastTs=0,gotAny=false;
+  A.base=NS+'/'+room;
+  A.dev=load(K.dev)||uid();store(K.dev,A.dev);
+  A.name=load(K.name)||'';A.auto=!!A.name;
+  $('joinName').value=A.name;
+  if(A.name)$('joinScreen').classList.add('hidden');
   const status=()=>{
-    if(!cl.some(c=>c.connected)){audStatus('connecting');return}
-    audStatus(Date.now()-lastLive<15000?'online':(gotAny?'offline':'nohost'));
+    if(!A.cl.some(c=>c.connected)){audStatus('connecting');return}
+    audStatus(Date.now()-A.lastLive<15000?'online':(A.gotAny?'offline':'nohost'));
   };
-  const ping=()=>cl.forEach(c=>{if(c.connected)try{c.publish(base+'/p',JSON.stringify({id:audMe}),{qos:0})}catch{}});
   BROKERS.forEach(url=>{
     const c=mqtt.connect(url,{clientId:'jp-c-'+Math.random().toString(16).slice(2,10),reconnectPeriod:3000,connectTimeout:10000});
-    cl.push(c);
-    c.on('connect',()=>{c.subscribe(base+'/s');ping();status()});
+    A.cl.push(c);
+    c.on('connect',()=>{c.subscribe(A.base+'/s',{qos:0});audSend({t:'ping'});if(A.auto&&A.name&&!A.me)sendJoin();status()});
     c.on('close',status);
-    c.on('error',e=>console.warn('CLIENT err',url,e&&e.message));
-    c.on('message',(t,payload)=>{
+    c.on('error',e=>console.warn('CLIENT broker',url,e&&e.message));
+    c.on('message',(t,payload,packet)=>{
       let d;try{d=JSON.parse(payload.toString())}catch{return}
       if(!d||d.t!=='state')return;
-      if(d.ts&&d.ts<lastTs)return;
-      lastTs=d.ts||lastTs;gotAny=true;
-      if(!d.payload&&!packet)lastLive=Date.now();
+      if(d.ts&&d.ts<A.lastTs)return;
+      A.lastTs=d.ts||A.lastTs;A.gotAny=true;
+      if(!packet.retain)A.lastLive=Date.now();
       audRender(d);status();
     });
   });
-  setInterval(()=>{ping();status()},5000);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden){ping();status()}});
+  setInterval(()=>{audSend({t:'ping'});status()},5000);
+  setInterval(()=>{if(A.auto&&A.name&&!A.me)sendJoin()},2500);
+  setInterval(audTick,250);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){audSend({t:'ping'});status()}});
   audStatus('connecting');
 }
-function audStatus(st,extra){
-  const b=$('audStatus');if(!b)return;
-  const T={online:['● Live','#0aa56f'],connecting:['● Connessione…','#F4D03F'],nohost:['● Host assente','#b91c1c'],ice:['● Rete bloccata','#b91c1c'],offline:['● Riconnessione…','#b91c1c']};
-  const [t,c]=T[st]||T.offline;b.textContent=t;b.style.color=c;
+function audTick(){
+  const el=$('audTimer');
+  const left=A.endAt?Math.max(0,Math.ceil((A.endAt-Date.now())/1000)):-1;
+  if(el){el.textContent=left>=0?'⏱ '+left+'s':'';el.classList.toggle('danger',left>=0&&left<=3)}
+  const fe=$('fjPhoneTimer');if(fe){fe.textContent=left>=0?'⏱ '+left+'s':'';fe.classList.toggle('danger',left>=0&&left<=5)}
 }
 function triggerBuzz(){
-  if(!audMe)return;
-  const btn=$('buzzBtn');const msg=$('audBuzzMsg');
-  btn.classList.add('waiting');btn.disabled=true;
-  msg.textContent='Invio prenotazione…';msg.classList.remove('hidden');
-  const cl=window._audClients; // not used
-  // publish on all brokers via a tiny helper
-  if(window.mqtt){
-    BROKERS.forEach(url=>{
-      const c=mqtt.connect(url,{clientId:'jp-buzz-'+Math.random().toString(16).slice(2,10),connectTimeout:5000});
-      c.on('connect',()=>{
-        const room=new URLSearchParams(location.search).get('v');
-        c.publish('jeopardy1/'+room+'/buzz',JSON.stringify({id:audMe,t:Date.now()}),{qos:0});
-        c.end(true);
-      });
-      c.on('error',()=>c.end(true));
-    });
-  }
-  playSound('tick');
+  const s=A.state;if(!s||!s.open||s.open.ph!=='open'||!A.me)return;
+  if(A.buzzAt&&Date.now()-A.buzzAt<1500)return;
+  A.buzzAt=Date.now();vib(60);playSound('buzz');audSend({t:'buzz'});audRender(s);
+  setTimeout(()=>{if(A.state)audRender(A.state)},1600);
 }
 function audRender(s){
-  if(!s)return;
+  A.state=s;
   $('audWait').classList.add('hidden');
-  if(s.ended){
-    $('audBoard').classList.add('hidden');$('audPlay').classList.add('hidden');$('audDone').classList.add('hidden');$('audScores').classList.add('hidden');
-    const f=$('audFinal');if(f)f.classList.remove('hidden');
-    // reuse host final via modal? simpler: show basic
-    const b=$('audBoard');b.innerHTML='<h2 class="font-serif font-black text-4xl text-jp-gold text-center mt-20">Partita terminata</h2><p class="text-center text-white/60">Vedi il punteggio sullo schermo del conduttore.</p>';
-    b.classList.remove('hidden');
-    return;
+  const me=(s.players||[]).find(p=>p.dv===A.dev)||null;A.me=me;
+  if(me){A.seenMe=true;$('joinScreen').classList.add('hidden')}
+  else{
+    if(A.seenMe){A.seenMe=false;A.auto=false;$('joinBtn').textContent='Entra'}   // rimossa dal conduttore: niente rientro automatico
+    $('joinScreen').classList.remove('hidden');
   }
-  $('audFinal')&&$('audFinal').classList.add('hidden');
-  // Board
-  const board=$('audBoard');
-  if(s.cats&&s.cats.length){
-    board.classList.remove('hidden');
-    board.innerHTML=s.cats.map(c=>`<div class="flex flex-col"><div class="aud-head glass"><div class="text-xl">${esc(c.emoji)}</div><div class="aud-title">${esc(c.title)}</div></div>${c.cards.map(k=>`<div class="aud-tile ${k.d?'tile-gone':''} ${s.open&&s.open.id===k.id?'tile-open':''}" data-id="${esc(k.id)}">${k.p}${k.dd?'<span class="badge-dd" style="font-size:.6rem;margin-left:.4rem">DD</span>'}</div>`).join('')}</div>`).join('');
-  }else board.classList.add('hidden');
-  // Active play
-  const play=$('audPlay');const q=$('audQuestion');const cat=$('audCat');const btn=$('buzzBtn');const msg=$('audBuzzMsg');
-  if(s.open&&!s.answered){
-    cat.textContent=s.open.cat+(s.open.dd?'  <span class="badge-dd">DAILY DOUBLE</span>':'');cat.innerHTML=s.open.cat+(s.open.dd?'  <span class="badge-dd">DAILY DOUBLE</span>':'');
-    q.textContent=s.open.q;
-    play.classList.remove('hidden');
-    const meIdx=s.open.buzzOrder.indexOf(audMe);
-    if(s.open.locked){btn.classList.add('waiting');btn.disabled=true;msg.textContent='Risposta in valutazione…';msg.classList.remove('hidden')}
-    else if(meIdx===0){btn.classList.remove('waiting','late');btn.classList.add('first');btn.disabled=false;msg.textContent='🟢 Sei il primo! Attendi il conduttore';msg.classList.remove('hidden')}
-    else if(meIdx>0){btn.classList.remove('waiting','first');btn.classList.add('late');btn.disabled=true;msg.textContent='🔴 Troppo tardi, hai prenotato dopo';msg.classList.remove('hidden')}
-    else{btn.classList.remove('waiting','first','late');btn.disabled=false;msg.textContent='Premi BUZZER per rispondere';msg.classList.remove('hidden')}
-  }else if(s.open&&s.answered){
-    play.classList.remove('hidden');
-    cat.textContent=s.open.cat;q.textContent=s.open.q+'  →  Risposta: '+(s.result==='right'?'CORRETTA':'ERRATA');
-    btn.classList.add('waiting');btn.disabled=true;
-    msg.textContent=s.result==='right'?'✓ Risposta corretta':'✗ Risposta sbagliata';
-    msg.classList.remove('hidden');
-    msg.style.color=s.result==='right'?'#0aa56f':'#b91c1c';
-  }else{
-    play.classList.add('hidden');
-  }
-  // Scores
-  const sc=$('audScores');const as=$('audScore');
-  if(s.players){
-    const me=s.players.find(p=>p.n===null?false:false); // placeholder
-    as.textContent='0';
-    // find me by matching order is unreliable; instead we trust host to send scores and client just shows its own if known.
-    // Simplest: show all scores and highlight if we somehow know. We'll show list.
+  $('audTeam').textContent=me?me.n:'';
+  const sc=$('audScore');
+  if(me&&typeof me.s==='number'){
     sc.classList.remove('hidden');
-    sc.innerHTML=`<div class="glass rounded-2xl p-4"><h3 class="font-serif font-bold text-jp-gold text-sm uppercase mb-2">Classifica</h3>${s.players.slice().sort((a,b)=>b.s-a.s).map(p=>`<div class="flex justify-between text-sm"><span>${esc(p.n)}</span><b class="text-jp-gold">${p.s}</b></div>`).join('')}</div>`;
-  }else{sc.classList.add('hidden')}
-  if(as)as.textContent='—';
+    const txt='💰 '+me.s;
+    if(sc.textContent!==txt){sc.textContent=txt;sc.classList.remove('score-pop');void sc.offsetWidth;sc.classList.add('score-pop')}
+  }else sc.classList.add('hidden');
+  ['audBoard','audPlay','audFJ','audFinal','audScores'].forEach(i=>$(i).classList.add('hidden'));
+  A.endAt=0;
+  if(!me)return;
+  if(s.ended){renderAudFinal(s);return}
+  if(s.fj){renderAudFJ(s,me);return}
+  if(s.open)renderAudPlay(s,me);else renderAudBoard(s);
+  renderAudScores(s,me);
+}
+function renderAudBoard(s){
+  const b=$('audBoard');b.classList.remove('hidden');
+  if(!s.cats.length){b.innerHTML='<p class="text-center muted mt-10">Il conduttore sta preparando il tabellone…</p>';return}
+  const act=(s.players||[]).find(p=>p.id===s.act);
+  b.innerHTML=(act?`<div class="text-center mb-3"><span class="small muted">Sceglie la tessera</span><div class="font-serif font-black text-xl gold">${esc(act.n)}</div></div>`:'')+
+    `<div class="flex gap-2 sm:gap-3 justify-center">`+s.cats.map(c=>`<div class="aud-col"><div class="cat-head"><div class="text-xl">${esc(c.emoji)}</div><div class="aud-title">${esc(c.title)}</div></div>${c.cards.map(k=>`<div class="aud-tile ${k.d?'tile-gone':''}">${k.p}</div>`).join('')}</div>`).join('')+`</div>`;
+}
+function renderAudPlay(s,me){
+  const o=s.open,P=id=>{const p=(s.players||[]).find(x=>x.id===id);return p?esc(p.n):'?'};
+  $('audPlay').classList.remove('hidden');
+  $('audCat').innerHTML=esc(o.cat)+(o.dd?' <span class="badge-dd">DAILY DOUBLE</span>':'');
+  $('audPts').textContent=o.dd&&o.bet?'Puntata: '+o.bet:o.p;
+  $('audQuestion').textContent=o.q||'';$('audQuestion').classList.toggle('hidden',!o.q);
+  A.endAt=o.rem?Date.now()+o.rem:0;
+  const key=o.id+'|'+o.ph+'|'+(o.a||'')+'|'+o.out.length;
+  if(key!==A.openKey){A.openKey=key;A.buzzAt=0}
+  const btn=$('buzzBtn'),msg=$('audMsg'),ans=$('audAnswer');
+  let cls='waiting',label='ATTENDI…',dis=true,m='';
+  if(o.ph==='bet'){m=`Daily Double! ${P(o.ddp)} sta puntando…`}
+  else if(o.ph==='read'){m='Ascolta la domanda: il buzzer si apre a breve'}
+  else if(o.ph==='open'){
+    if(o.out.includes(me.id)){cls='late';label='ELIMINATO';m='Hai già sbagliato su questa domanda'}
+    else if(A.buzzAt&&Date.now()-A.buzzAt<1500){label='…';m='Prenotazione inviata'}
+    else{cls='';label='BUZZER!';dis=false;m='Premi per prenotarti!'}
+  }else if(o.ph==='answer'){
+    if(o.a===me.id){cls='first';label='TOCCA A TE';m='Rispondi a voce!'}
+    else m=o.dd?`${P(o.a)} risponde (Daily Double, puntata ${o.bet})`:`${P(o.a)} sta rispondendo…`;
+  }
+  btn.className='buzz-big '+cls;btn.textContent=label;btn.disabled=dis;
+  msg.textContent=m;
+  $('audBuzzWrap').classList.toggle('hidden',o.ph==='reveal'||o.ph==='bet');
+  ans.classList.toggle('hidden',o.ph!=='reveal');
+  if(o.ph==='reveal'){
+    let r='⏰ Nessuno ha risposto';
+    if(o.res==='right')r=`✅ ${P(o.rp)} risponde correttamente`;else if(o.res==='wrong')r=`❌ ${P(o.rp)} sbaglia`;
+    ans.innerHTML=`<div class="small gold">Risposta</div><div class="font-serif font-black text-2xl my-2">${esc(o.ans||'')}</div><div class="font-bold">${r}</div>`;
+  }
+}
+function renderAudScores(s,me){
+  const el=$('audScores');
+  if(!s.sc||!(s.players||[]).some(p=>typeof p.s==='number')){el.classList.add('hidden');return}
+  el.classList.remove('hidden');
+  el.innerHTML=`<div class="glass rounded-2xl p-4 space-y-2"><h3 class="font-serif font-bold gold">Classifica</h3>`+s.players.slice().sort((a,b)=>b.s-a.s).map((p,i)=>`<div class="flex justify-between text-sm ${me&&p.id===me.id?'gold font-bold':''}"><span>${i===0&&p.s>0?'👑 ':''}${esc(p.n)}</span><b>${p.s}</b></div>`).join('')+`</div>`;
+}
+function fjSendW(){const v=parseInt($('fjW').value,10);if(isNaN(v)||v<0)return toast('Puntata non valida');A.myW=v;audSend({t:'fjw',w:v});toast('Puntata inviata ✓');vib(40)}
+function fjSendA(){const v=$('fjA').value.trim();if(!v)return toast('Scrivi una risposta');A.myA=v;audSend({t:'fja',a:v});toast('Risposta inviata ✓');vib(40)}
+function renderAudFJ(s,me){
+  const f=s.fj,box=$('audFJ');box.classList.remove('hidden');
+  const el=f.elig.includes(me.id),didW=f.wd.includes(me.id),didA=f.ad.includes(me.id);
+  A.endAt=f.rem?Date.now()+f.rem:0;
+  const key=[f.ph,el,didW,didA,f.rv.length,f.q?1:0].join('|');
+  if(key===A.fjKey)return;   // niente re-render: non cancello quello che stai scrivendo
+  A.fjKey=key;
+  let h=`<div class="text-center font-serif font-black text-2xl gold">⚡ FINAL JEOPARDY</div><div class="card-question"><div class="small gold">Categoria</div>${esc(f.cat)}</div>`;
+  if(f.q)h+=`<div class="card-question">${esc(f.q)}</div>`;
+  if(!el)h+=`<div class="box text-center">Non partecipi al Final (serve un punteggio positivo). Guarda lo schermo! 👀</div>`;
+  else if(f.ph==='cat'){
+    h+=didW?`<div class="box text-center">✅ Puntata inviata${A.myW!==null?': <b class="gold">'+A.myW+'</b>':''}<br><span class="muted text-sm">Attendi l'indizio…</span></div>`
+      :`<div class="box space-y-3"><div class="small gold">La tua puntata segreta</div><input id="fjW" type="number" inputmode="numeric" min="0" ${typeof me.s==='number'?'max="'+me.s+'" placeholder="0 – '+me.s+'"':''} class="inp text-center text-xl"><button class="btn btn-gold w-full !py-3" onclick="fjSendW()">Invia puntata</button></div>`;
+  }else if(f.ph==='clue'){
+    h+=`<div id="fjPhoneTimer" class="timer text-center"></div><div class="box space-y-3"><div class="small gold">La tua risposta</div><input id="fjA" type="text" maxlength="120" value="${esc(A.myA)}" class="inp text-lg" placeholder="Scrivi qui…"><button class="btn btn-gold w-full !py-3" onclick="fjSendA()">${didA?'Aggiorna risposta':'Invia risposta'}</button>${didA?'<div class="text-center text-sm gold">✅ Risposta inviata</div>':''}</div>`;
+  }else{
+    h+=`<div class="box text-center muted">Il conduttore sta giudicando…</div>`;
+  }
+  if(f.ph==='judge'&&f.rv.length){
+    h+=`<div class="space-y-2">`+f.rv.map(r=>{const p=(s.players||[]).find(x=>x.id===r.id);return `<div class="box"><div class="flex justify-between"><b>${esc(p?p.n:'?')}</b><span class="gold font-bold">Puntata ${r.w}</span></div><div class="font-serif">«${esc(r.a||'—')}»</div><div class="font-bold ${r.ok?'text-green-400':'text-red-400'}">${r.ok?'✅ Giusta':'❌ Sbagliata'}</div></div>`}).join('')+`</div>`;
+  }
+  box.innerHTML=h;
+}
+function renderAudFinal(s){
+  const f=$('audFinal');f.classList.remove('hidden');
+  f.innerHTML=`<h2 class="font-serif font-black text-3xl gold">🏆 Classifica finale</h2>${podiumHtml((s.players||[]).map(p=>({name:p.n,score:p.s||0})))}`;
+  if(!A.confetti){A.confetti=true;fireConfetti()}
 }
 
 /* =====================================================================
-   10. AVVIO
+   11. AVVIO
    ===================================================================== */
 const viewId=new URLSearchParams(location.search).get('v');
 if(viewId){
   $('hostApp').classList.add('hidden');$('audApp').classList.remove('hidden');
   if(window.mqtt)startAudience(viewId);
-  else $('audWait').innerHTML='<p class="text-red-400">MQTT non disponibile</p>';
+  else $('audWait').innerHTML='<p class="text-red-300">Impossibile caricare la libreria MQTT: controlla la connessione.</p>';
 }else{
-  renderAll();initHostPeer();
+  saveGame();renderAll();initHost();getWakeLock();
+  if(game.fj)startTick();
 }
 </script>
 </body>
