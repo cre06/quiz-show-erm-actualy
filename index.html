@@ -1609,7 +1609,7 @@ function hwLayerMake(){
 }
 function hwSpawn(cls,txt,st){
   if(!HW.layer)return;
-  const e=document.createElement('div');e.className=cls;e.textContent=txt;
+  const e=document.createElement('div');e.className=cls;e.innerHTML=txt;;
   Object.assign(e.style,st);HW.layer.appendChild(e);
   e.addEventListener('animationend',()=>e.remove());
   setTimeout(()=>{if(e.parentNode)e.remove()},15000);
