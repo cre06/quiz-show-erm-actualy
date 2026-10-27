@@ -24,6 +24,7 @@ setTimeout(function(){
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fredoka:wght@400;600&family=Poppins:wght@400;600;800&family=Caveat:wght@500;700&family=Permanent+Marker&family=Orbitron:wght@400;700&family=Share+Tech+Mono&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
 <script defer src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -350,6 +351,72 @@ button.pill{cursor:pointer}
 @keyframes bannerIn{from{opacity:0;transform:translateY(-14px) scale(.92)}}
 @keyframes shock{0%{box-shadow:0 0 0 0 var(--accent)}100%{box-shadow:0 0 0 38px transparent}}
 @keyframes scorePop{50%{transform:scale(1.3)}}
+  /* =====================================================================
+   6-bis. AUDIENCE HALLOWEEN — solo #audApp (tema 'halloween')
+   ===================================================================== */
+html[data-theme='halloween']{--hw-o:#ff7a1a;--hw-g:#8aff3f;--hw-b:#e01e37}
+html[data-theme='halloween'] ::selection{background:var(--hw-o);color:#230d00}
+html[data-theme='halloween'] #audApp .logo{font-family:'Creepster',cursive;background:linear-gradient(90deg,var(--hw-o),var(--hw-g),var(--hw-o));background-size:200% 100%;letter-spacing:.06em}
+html[data-theme='halloween'] #audApp .loader{border-top-color:var(--hw-o)}
+html[data-theme='halloween'] #audApp .join{background:radial-gradient(120% 90% at 50% 0%,#241238 0%,#120822 55%,#0a0612 100%)}
+html[data-theme='halloween'] #audApp .join-card{background:linear-gradient(180deg,rgba(20,9,36,.94),rgba(34,14,10,.94));border:1px solid rgba(255,122,26,.5);box-shadow:0 0 70px rgba(255,122,26,.22),0 24px 60px rgba(0,0,0,.7)}
+html[data-theme='halloween'] #audApp .join-card h2{font-family:'Creepster',cursive;color:var(--hw-o);letter-spacing:.05em;animation:hwFlicker 3.2s infinite}
+html[data-theme='halloween'] #audApp .join-card .inp:focus{border-color:var(--hw-g);box-shadow:0 0 0 3px rgba(138,255,63,.2)}
+html[data-theme='halloween'] #audApp #joinBtn{background:linear-gradient(135deg,var(--hw-o),#ffb35c);box-shadow:0 10px 26px -8px var(--hw-o)}
+html[data-theme='halloween'] #audApp .nc-cat,
+html[data-theme='halloween'] #audApp .aud-done .t,
+html[data-theme='halloween'] #audApp #audFinal h2{font-family:'Creepster',cursive;letter-spacing:.05em;animation:hwFlicker 4s infinite}
+html[data-theme='halloween'] #audApp .aud-title{font-family:'Outfit',sans-serif}
+html[data-theme='halloween'] #audApp .aud-tile{background:linear-gradient(180deg,#38190a,#200d04);border-color:rgba(255,122,26,.5);color:#ffb35c;box-shadow:inset 0 -3px 0 rgba(0,0,0,.55)}
+html[data-theme='halloween'] #audApp .aud-tile.tile-open{background:linear-gradient(180deg,#ffa040,#ff6a00);border-color:#ffd27a;color:#2a0f00;box-shadow:0 0 26px rgba(255,122,26,.85),inset 0 0 20px rgba(255,214,120,.65);animation:hwJack 1.15s infinite}
+html[data-theme='halloween'] #audApp .aud-tile.tile-gone{filter:grayscale(1) brightness(.55) hue-rotate(60deg)}
+html[data-theme='halloween'] #audApp .aud-head{background:linear-gradient(180deg,#2b1e3f,#181022);border-radius:50% 50% 12px 12px/34% 34% 12px 12px;border-color:rgba(168,85,247,.45);box-shadow:inset 0 6px 14px rgba(0,0,0,.5)}
+html[data-theme='halloween'] #audApp .aud-show{background:linear-gradient(120deg,rgba(224,30,55,.22),rgba(60,4,16,.75));border-color:var(--hw-b);color:#ff6b7d;text-shadow:0 0 14px rgba(224,30,55,.7);animation:hwHeart 1.6s infinite}
+html[data-theme='halloween'] #audApp .aud-show.tile-open{border-color:#ff3b52;color:#ff8d9b}
+html[data-theme='halloween'] #audApp .alert-sd{background:rgba(224,30,55,.16);border-color:var(--hw-b);color:#ff6b7d}
+html[data-theme='halloween'] #audApp .alert-buzz{background:linear-gradient(135deg,var(--hw-g),#3fd42a);color:#0a1c02;text-shadow:none;box-shadow:0 0 34px rgba(138,255,63,.55)}
+html[data-theme='halloween'] #audApp .nowcard{background:linear-gradient(180deg,rgba(255,122,26,.12),rgba(168,85,247,.1));border-color:var(--hw-o);box-shadow:0 0 40px rgba(255,122,26,.18)}
+html[data-theme='halloween'] #audApp .nc-pts{color:var(--hw-g);text-shadow:0 0 18px rgba(138,255,63,.6)}
+html[data-theme='halloween'] #audApp .scorelist .r.me{border-color:var(--hw-g);background:rgba(138,255,63,.1)}
+html[data-theme='halloween'] #audApp .float-pts.pos{color:var(--hw-g)}
+html[data-theme='halloween'] #audApp .float-pts.neg{color:var(--hw-b)}
+html[data-theme='halloween'] #audApp .fab{background:linear-gradient(135deg,var(--hw-o),#c2410c)}
+html[data-theme='halloween'] #audApp .aud-wait .big{color:var(--hw-o)}
+html[data-theme='halloween'] #audApp .sk{background:linear-gradient(90deg,rgba(255,122,26,.15),rgba(255,122,26,.32),rgba(255,122,26,.15))}
+#hwFx{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.hw-moon{position:absolute;top:5%;right:7%;width:88px;height:88px;border-radius:50%;background:radial-gradient(circle at 34% 32%,#fff8e0,#ffe9b0 55%,#efc26a);box-shadow:0 0 50px 18px rgba(255,214,120,.35),0 0 130px 60px rgba(255,140,40,.14);animation:hwMoon 6s ease-in-out infinite alternate}
+.hw-web,.hw-pumpkin,.hw-spider span{filter:drop-shadow(0 4px 10px rgba(0,0,0,.6))}
+.hw-web{position:absolute;font-size:2.1rem;opacity:.85;animation:hwBob 5s ease-in-out infinite alternate}
+.hw-web1{top:64px;left:6px}.hw-web2{top:64px;right:6px;transform:scaleX(-1)}
+.hw-pumpkin{position:absolute;bottom:76px;left:10px;font-size:2.3rem;animation:hwBob 4s ease-in-out infinite alternate}
+.hw-pumpkin2{left:auto;right:14px;bottom:86px;font-size:1.7rem;animation-delay:-2s}
+.hw-spider{position:absolute;top:0;left:20%;transform-origin:top center;animation:hwSway 5.5s ease-in-out infinite alternate}
+.hw-spider i{display:block;width:2px;height:84px;margin-left:11px;background:linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.08))}
+.hw-spider span{display:inline-block;font-size:1.4rem;margin-top:-6px;animation:hwCrawl 9s ease-in-out infinite alternate}
+.hw-fog{position:absolute;bottom:-30px;left:-30%;width:160%;height:150px;border-radius:50%;filter:blur(38px);opacity:.13}
+.hw-fog1{background:radial-gradient(ellipse at 30% 60%,#9d6bff,transparent 65%);animation:hwFog 26s linear infinite alternate}
+.hw-fog2{background:radial-gradient(ellipse at 70% 50%,#4cff9d,transparent 65%);opacity:.09;bottom:-60px;animation:hwFog 34s linear infinite alternate-reverse}
+.hw-bat{position:absolute;left:-70px;z-index:2;animation:hwFly 8s linear forwards}
+.hw-bat span{display:inline-block;animation:hwFlap .28s ease-in-out infinite alternate}
+.hw-ghost{position:absolute;bottom:-70px;z-index:2;opacity:0;animation:hwRise 7s ease-in forwards}
+.hw-puff{position:absolute;z-index:3;animation:hwPuff 1.3s ease-out forwards}
+.hw-flash{position:absolute;inset:0;z-index:4;opacity:0;background:radial-gradient(circle at 72% 0%,rgba(255,255,255,.95),rgba(190,150,255,.45) 38%,transparent 72%)}
+.hw-flash.hw-go{animation:hwFlash .9s ease-out}
+html[data-theme='halloween'] body.hw-shake #audApp{animation:hwShake .55s}
+@keyframes hwFlicker{0%,100%{text-shadow:0 0 10px rgba(255,122,26,.9),0 0 30px rgba(255,122,26,.4)}42%{text-shadow:0 0 4px rgba(255,122,26,.5)}46%{text-shadow:0 0 16px rgba(255,150,40,1)}52%{text-shadow:0 0 5px rgba(255,122,26,.4)}}
+@keyframes hwJack{0%,100%{box-shadow:0 0 26px rgba(255,122,26,.85),inset 0 0 20px rgba(255,214,120,.65)}46%{box-shadow:0 0 12px rgba(255,122,26,.5),inset 0 0 10px rgba(255,214,120,.4)}52%{box-shadow:0 0 38px rgba(255,140,40,1),inset 0 0 26px rgba(255,224,140,.85)}}
+@keyframes hwHeart{0%,100%{transform:scale(1)}12%{transform:scale(1.045)}24%{transform:scale(1)}36%{transform:scale(1.03)}}
+@keyframes hwBob{to{transform:translateY(-7px) rotate(-4deg)}}
+@keyframes hwSway{from{transform:rotate(-7deg)}to{transform:rotate(7deg)}}
+@keyframes hwCrawl{to{transform:translateY(34px)}}
+@keyframes hwMoon{to{box-shadow:0 0 70px 26px rgba(255,214,120,.5),0 0 160px 70px rgba(255,140,40,.2)}}
+@keyframes hwFog{to{transform:translateX(14%)}}
+@keyframes hwFly{0%{transform:translate(0,0) rotate(6deg)}25%{transform:translate(30vw,-26px) rotate(-9deg)}50%{transform:translate(60vw,12px) rotate(7deg)}75%{transform:translate(90vw,-20px) rotate(-7deg)}100%{transform:translate(112vw,-34px) rotate(5deg)}}
+@keyframes hwFlap{to{transform:scaleY(.5) scaleX(1.18)}}
+@keyframes hwRise{0%{opacity:0;transform:translateY(0)}12%{opacity:.85}55%{transform:translateY(-52vh) translateX(24px)}100%{opacity:0;transform:translateY(-105vh) translateX(-14px)}}
+@keyframes hwPuff{0%{opacity:.95;transform:scale(.6)}100%{opacity:0;transform:translateY(-70px) scale(1.5)}}
+@keyframes hwFlash{0%{opacity:0}8%{opacity:.9}15%{opacity:.08}24%{opacity:.55}100%{opacity:0}}
+@keyframes hwShake{0%,100%{transform:translate(0)}20%{transform:translate(-7px,3px)}40%{transform:translate(6px,-4px)}60%{transform:translate(-5px,2px)}80%{transform:translate(4px,-2px)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 </style>
@@ -670,6 +737,7 @@ const AUD_THEMES=[
   T('popart','Pop Art','🎭',true,['#ffe000',null,'#ffffff','rgba(0,0,0,.08)','#ffffff','#000000','#000000','#333333','#ff0000','#ffffff','#ffffff','#000000','#ff0000','0px',"'Permanent Marker',cursive"],{'--bw':'3px','--shadow':'5px 5px 0 #000','--blob-op':'0'}),
   T('cybergrid','Cyber Grid','💾',false,['#000000','linear-gradient(rgba(0,255,65,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.14) 1px,transparent 1px)','rgba(0,20,0,.7)','rgba(0,255,65,.08)','#001208','rgba(0,255,65,.5)','#b9ffc8','#4fbf6a','#00ff41','#001a08','rgba(0,20,0,.6)','#00ff41','#00ff41','0px',"'Share Tech Mono',monospace"],{'--bg-size':'40px 40px','--blob-op':'0'}),
   T('native','Mobile Native','📱',true,['#f2f2f7',null,'#ffffff','rgba(0,0,0,.05)','#ffffff','#d1d1d6','#000000','#6e6e73','#0a84ff','#ffffff','#ffffff','#d1d1d6','#000000','22px',"'Poppins',sans-serif"],{'--blob-op':'0'})
+  T('halloween','Halloween Night','🎃',false,['#0a0612','linear-gradient(180deg,#0a0612 0%,#160a24 55%,#1f0d2e 100%)','rgba(28,13,46,.72)','rgba(255,122,26,.09)','#130826','rgba(255,122,26,.42)','#ffe9d6','#b39ac6','#ff7a1a','#230d00','rgba(28,13,46,.8)','#ff7a1a','#ffb35c','18px',"'Creepster',cursive"],{'--accent2':'#77e02c','--good':'#8aff3f','--bad':'#ff4d5e','--warn':'#ffb35c','--blob1':'#4c1d95','--blob2':'#c2410c','--blob3':'#14532d','--blob-op':'.22','--shadow':'0 12px 32px -14px rgba(255,122,26,.28)'})
 ];
 let appliedVars=[];
 function applyAppearance(id,save){
@@ -1524,6 +1592,69 @@ function renderThemeList(){
   }).join('');
 }
 function setTheme(id){applyAppearance(id,true);renderThemeList();toast('Tema applicato');vib(20)}
+  /* =====================================================================
+   12-bis. HALLOWEEN FX — solo vista concorrenti (tema 'halloween')
+   ===================================================================== */
+const HW={on:false,layer:null,tm:[],bo:null,no:null};
+function hwLayerMake(){
+  if(HW.layer)return;
+  const L=document.createElement('div');L.id='hwFx';
+  L.innerHTML='<div class="hw-moon"></div><div class="hw-fog hw-fog1"></div><div class="hw-fog hw-fog2"></div>'+
+    '<div class="hw-web hw-web1">🕸️</div><div class="hw-web hw-web2">🕸️</div>'+
+    '<div class="hw-pumpkin">🎃</div><div class="hw-pumpkin hw-pumpkin2">🎃</div>'+
+    '<div class="hw-spider"><i></i><span>🕷️</span></div><div class="hw-flash"></div>';
+  const f=L.querySelector('.hw-flash');
+  f.addEventListener('animationend',()=>f.classList.remove('hw-go'));
+  document.body.appendChild(L);HW.layer=L;
+}
+function hwSpawn(cls,txt,st){
+  if(!HW.layer)return;
+  const e=document.createElement('div');e.className=cls;e.textContent=txt;
+  Object.assign(e.style,st);HW.layer.appendChild(e);
+  e.addEventListener('animationend',()=>e.remove());
+  setTimeout(()=>{if(e.parentNode)e.remove()},15000);
+}
+function hwBat(){hwSpawn('hw-bat','<span>🦇</span>',{top:(4+Math.random()*50)+'%',fontSize:(16+Math.random()*20)+'px',animationDuration:(6+Math.random()*5)+'s'})}
+function hwGhost(){hwSpawn('hw-ghost','👻',{left:(6+Math.random()*82)+'%',fontSize:(20+Math.random()*26)+'px'})}
+function hwLightning(){
+  if(!HW.layer)return;const f=HW.layer.querySelector('.hw-flash');if(!f)return;
+  f.classList.remove('hw-go');void f.offsetWidth;f.classList.add('hw-go');
+}
+function hwPuff(t){
+  const r=t.getBoundingClientRect();
+  hwSpawn('hw-puff',Math.random()<.5?'💨':'👻',{left:(r.left+r.width/2-14)+'px',top:r.top+'px',fontSize:'26px'});
+}
+function hwBuzzShake(){
+  hwLightning();
+  document.body.classList.remove('hw-shake');void document.body.offsetWidth;document.body.classList.add('hw-shake');
+  setTimeout(()=>document.body.classList.remove('hw-shake'),700);
+}
+function hwStart(){
+  if(HW.on)return;HW.on=true;
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  hwLayerMake();
+  HW.tm.push(setInterval(hwBat,2600),setInterval(hwGhost,7000),setInterval(hwLightning,9000));
+  setTimeout(hwBat,800);setTimeout(hwGhost,3000);setTimeout(hwLightning,2500);
+  HW.bo=new MutationObserver(ms=>ms.forEach(m=>{
+    if(m.attributeName==='class'&&m.target.classList.contains('tile-gone')&&!m.target.dataset.hwg){
+      m.target.dataset.hwg='1';hwPuff(m.target);
+    }
+  }));
+  HW.bo.observe($('audBoard'),{attributes:true,attributeFilter:['class'],subtree:true});
+  HW.no=new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{
+    if(n.nodeType===1&&(n.classList.contains('alert-buzz')||(n.querySelector&&n.querySelector('.alert-buzz'))))hwBuzzShake();
+  })));
+  HW.no.observe($('audNow'),{childList:true});
+}
+function hwStop(){
+  HW.on=false;HW.tm.forEach(clearInterval);HW.tm=[];
+  if(HW.bo){HW.bo.disconnect();HW.bo=null}
+  if(HW.no){HW.no.disconnect();HW.no=null}
+  if(HW.layer){HW.layer.remove();HW.layer=null}
+  document.body.classList.remove('hw-shake');
+}
+new MutationObserver(()=>{document.documentElement.dataset.theme==='halloween'?hwStart():hwStop()})
+  .observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
 /* =====================================================================
    13. AVVIO
